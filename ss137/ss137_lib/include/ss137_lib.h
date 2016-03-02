@@ -113,17 +113,6 @@ typedef struct
 
 typedef struct
 {
-	uint32_t  msgLength;
-	uint8_t   version;
-	uint32_t  recIDExp;
-	uint32_t  sendIDExp;
-	uint32_t  transNum;
-	uint16_t  seqNum;
-	uint8_t   msgType;
-} msg_header_t;
-
-typedef struct
-{
 	uint32_t  genID;
 	uint32_t  serNum;
 } k_ident_t;
@@ -154,65 +143,85 @@ typedef struct
 	uint32_t  peerID[MAX_PEER_NUM];
 } k_entity_t;
 
+typedef struct
+{
+	uint32_t  msgLength;
+	uint8_t   version;
+	uint32_t  recIDExp;
+	uint32_t  sendIDExp;
+	uint32_t  transNum;
+	uint16_t  seqNum;
+	uint8_t   msgType;
+} msg_header_t;
+
+
+typedef struct
+{
+	uint16_t   reqNum;
+	k_struct_t kStructList[MAX_REQ_ADD_KEYS];
+} cmd_add_keys_t;
+
+typedef struct
+{
+	uint16_t  reqNum;
+	k_ident_t kIdentList[MAX_REQ_DEL_KEYS];
+} cmd_del_keys_t;
+
+typedef struct
+{
+	uint16_t     reqNum;
+	k_validity_t kValidityList[MAX_REQ_UPDATE];
+} cmd_up_key_val_t;
+
+typedef struct
+{
+	uint16_t     reqNum;
+	k_entity_t   kEntityList[MAX_REQ_UPDATE];
+} cmd_up_key_ent_t;
+
+typedef struct
+{
+	uint32_t etcsID;
+	uint8_t  reason;
+	uint32_t startValidity;
+	uint32_t endValidity;
+	char     text[MAX_TEXT_LENGTH];
+} cmd_req_key_op_t;
+
+
+typedef struct
+{
+	k_ident_t kIdent;
+	uint8_t   kStatus;
+} notif_key_up_status_t;
+
+typedef struct
+{
+	uint8_t nVersion;
+	uint8_t version;
+	uint8_t appTimeout;
+}notif_session_init_t;
+
+typedef struct
+{
+	uint8_t  response;
+	uint16_t reqNum;
+	uint8_t  notificationList[MAX_REQ_NOTIF];
+} notif_response_t;
+
+typedef struct
+{
+	uint16_t maxTime;
+} notif_key_op_req_rcvd_t;
+
+typedef struct
+{
+	uint8_t checksum[CHECKSUM_SIZE];
+} notif_key_db_checksum_t;
 
 /* ------------------------------------------------------------------------------- */
 /* Public Functions Prototypes                                                     */
 /* ------------------------------------------------------------------------------- */
-
-int32_t initSession(session_t* const curr_session,
-					const uint32_t peer_etcs_id_exp);
-
-int32_t buildNotifSessionInit(write_stream_t* const ostream,
-							  const uint8_t app_timeout);
-
-int32_t sendMsg(write_stream_t* const ostream, const session_t * const curr_session);
-
-/* istream shall be already initialized */
-int32_t receiveMsg(read_stream_t* const istream, const session_t * const curr_session);
-
-
-int32_t buildCmdAddKeys(write_stream_t* const ostream,
-						const uint16_t req_num,
-						const k_struct_t* const k_struct_list);
-
-int32_t buildCmdDeleteKeys(write_stream_t* const ostream,
-						   const uint16_t req_num,
-						   const k_ident_t* const k_ident);
-								 
-int32_t buildCmdUpKeyValidities(write_stream_t* const ostream,
-								const uint16_t req_num,
-								const k_validity_t* const k_validity_list);
-
-int32_t buildCmdUpKeyEntities(write_stream_t* const ostream,
-							  const uint16_t req_num,
-							  const k_entity_t* const k_entity_list);
-
-int32_t buildCmdReqKeyOperation(write_stream_t* const ostream,
-								const uint32_t etcs_id_mod,
-								const uint8_t reason,
-								const uint32_t startValidity,
-								const uint32_t endValidity,
-								const char *const text);
-
-
-int32_t buildNotifKeyUpdateStatus(write_stream_t* const ostream,
-								  const k_ident_t* const k_ident,
-								  const uint8_t k_status);
-
-int32_t buildNotifSessionInit(write_stream_t* const ostream,
-							  const uint8_t app_timeout);
-
-int32_t buildNotifResponse(write_stream_t* const ostream,
-						   const uint8_t response,
-						   const uint16_t req_num,
-						   const uint8_t* const notification_list);
-
-
-int32_t buildNotifKeyOpReqRcvd(write_stream_t* const ostream,
-							   const uint16_t max_time);
-
-int32_t buildNotifKeyDBChecksum(write_stream_t* const ostream,
-								const uint8_t* const checksum);
 
 
 #endif /* KMC_SS137_LIB_H_ */

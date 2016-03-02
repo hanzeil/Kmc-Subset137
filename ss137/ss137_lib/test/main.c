@@ -12,6 +12,5 @@
 int main(void)
 {
 	session_t curr_session;
-	initSession(&curr_session, 0xAABBCCDD);
 	return(0);
 }
