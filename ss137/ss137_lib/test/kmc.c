@@ -9,8 +9,18 @@
 #include "net_utils.h"
 #include "ss137_lib.h"
 
-int main(void)
+int main(int argc, char *argv[])
 {
-	session_t curr_session;
+	session_t session;
+	int32_t sock;
+
+	memset(&session, 0, sizeof(session_t));
+		
+	initClientConnection(&session.ssl_des, &sock, argv[1], atoi(argv[2]));
+
+	initAppSession(0x44556677, &session);
+	
+	endAppSession(&session);
+
 	return(0);
 }

@@ -101,13 +101,12 @@ typedef enum
 
 typedef struct
 {
-	bool_t   used;
+	uint32_t ssl_des;
 	uint32_t myTransNum;
 	uint32_t mySeqNum;
 	uint32_t peerEtcsIDExp;
 	uint32_t peerTransNum;
 	uint32_t peerSeqNum;
-	uint32_t ssl_des;
 }session_t;
 
 
@@ -185,6 +184,7 @@ typedef struct
 	uint8_t  reason;
 	uint32_t startValidity;
 	uint32_t endValidity;
+	uint16_t textLength;
 	char     text[MAX_TEXT_LENGTH];
 } cmd_req_key_op_t;
 
@@ -223,5 +223,24 @@ typedef struct
 /* Public Functions Prototypes                                                     */
 /* ------------------------------------------------------------------------------- */
 
+int32_t initClientConnection(uint32_t* const ssl_des,
+							 int32_t* const sock,
+							 const char* const r_ip,
+							 const uint16_t r_port);
+
+int32_t initServerConnection(uint32_t* const ssl_des,
+							 int32_t* const client_sock,
+							 const uint16_t l_port);
+
+int32_t initAppSession(const uint32_t peerETCSID,
+					   session_t* const curr_session);
+
+int32_t endAppSession(session_t* const curr_session);
+
+int32_t sendMsg(write_stream_t* const ostream,
+				const uint32_t ssl_des);
+
+int32_t receiveMsg(read_stream_t* const istream,
+				   const uint32_t ssl_des);
 
 #endif /* KMC_SS137_LIB_H_ */
