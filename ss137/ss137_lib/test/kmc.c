@@ -15,12 +15,22 @@ int main(int argc, char *argv[])
 	int32_t sock;
 
 	memset(&session, 0, sizeof(session_t));
-		
-	initClientConnection(&session.tls_des, &sock, argv[1], atoi(argv[2]));
+
+	startClientTLS(&sock);
+
+	connectToTLSServer(&session.tls_des, sock, argv[1], atoi(argv[2]));
 
 	initAppSession(0x44556677, &session);
+
+
+	
 	
 	endAppSession(&session);
 
+	closeTLSConnection(session.tls_des, sock);
+
 	return(0);
 }
+
+	
+

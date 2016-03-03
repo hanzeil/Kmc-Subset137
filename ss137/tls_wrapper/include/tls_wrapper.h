@@ -33,7 +33,7 @@
  *****************************************************************************/
 
 /* client */
-int32_t createClientTLS(int32_t* const sock);
+int32_t initClientTLS(int32_t* const sock);
 
 int32_t connectTLS(uint32_t* const tls_des,
 				   const int32_t sock,
@@ -41,7 +41,7 @@ int32_t connectTLS(uint32_t* const tls_des,
 				   const uint16_t r_port);
 
 /* server */
-int32_t createServerTLS(int32_t* const sock,
+int32_t initServerTLS(int32_t* const sock,
 						const uint16_t l_port);
 
 int32_t acceptTLS(uint32_t* const tls_des,

@@ -13,15 +13,15 @@ int main(int argc, char* argv[])
  
 	uint32_t bytes_received;
 	uint32_t bytes_send;
-	uint32_t ssl_des;
+	uint32_t tls_des;
 
 	short int       s_port = atoi(argv[1]);
 
-	createServerTLS(&listen_sock, s_port);
+	initServerTLS(&listen_sock, s_port);
 
 	printf("Start listening on incoming connection\n");
 	
-	acceptTLS(&ssl_des, &client_sock, listen_sock);
+	acceptTLS(&tls_des, &client_sock, listen_sock);
 
 	/* ----------------------------------------------- */
 	/* Wait for incoming connection. */
@@ -29,18 +29,18 @@ int main(int argc, char* argv[])
 	{
 		/*------- DATA EXCHANGE - Receive message and send reply.-----*/
 		/* Receive data from the TLS client */
-		receiveTLS(&bytes_received, (uint8_t*)buf, 4096, ssl_des);
+		receiveTLS(&bytes_received, (uint8_t*)buf, 4096, tls_des);
 		
 		buf[bytes_received] = '\0';
 		
 		printf ("Received %d chars:'%s'\n", bytes_received, buf);
 		
 		/* Send data to the TLS client */
-		sendTLS(&bytes_send, (uint8_t*)"This message is from the TLS server", strlen("This message is from the TLS server"), ssl_des);
+		sendTLS(&bytes_send, (uint8_t*)"This message is from the TLS server", strlen("This message is from the TLS server"), tls_des);
 		
 	}
 
-	closeTLS(ssl_des, client_sock);
+	closeTLS(tls_des, client_sock);
 
 	/*--------------- TLS closure ---------------*/
 	/* Shutdown this side (server) of the connection. */

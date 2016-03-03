@@ -46,22 +46,27 @@ typedef struct
  * PUBLIC FUNCTION PROTOTYPES
  *****************************************************************************/
 
-int32_t initClientConnection(uint32_t* const tls_des,
-							 int32_t* const sock,
-							 const char* const r_ip,
-							 const uint16_t r_port);
+int32_t startClientTLS(int32_t* const sock);
 
-int32_t initServerConnection(uint32_t* const tls_des,
-							 int32_t* const client_sock,
-							 const uint16_t l_port);
+int32_t connectToTLSServer(uint32_t* const tls_des,
+						   const int32_t sock,
+						   const char* const r_ip,
+						   const uint16_t r_port);
+	
+int32_t startServerTLS(int32_t* const listen_sock,
+					   const uint16_t l_port);
+
+int32_t waitForTLSClient(uint32_t* const tls_des,
+						 int32_t* const client_sock,
+						 const int32_t listen_sock);
+
+int32_t closeTLSConnection(const uint32_t tls_des,
+						   const int32_t sock);
 
 int32_t initAppSession(const uint32_t peerETCSID,
 					   session_t* const curr_session);
 
 int32_t endAppSession(session_t* const curr_session);
-
-int32_t sendMsg(write_stream_t* const ostream,
-				const uint32_t tls_des);
 
 int32_t receiveMsg(read_stream_t* const istream,
 				   const uint32_t tls_des);

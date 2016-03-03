@@ -44,12 +44,32 @@
 
 #define CHECKSUM_SIZE (20U) /* size of md4 checksum evaluated on DB */
 
+#define K_LENGTH       (24U)
+
 #define MSG_HEADER_SIZE      (4*sizeof(uint32_t) + sizeof(uint16_t) + 2*sizeof(uint8_t))  /* 20 bytes */
 #define MSG_PAYLOAD_MAX_SIZE (MSG_MAX_SIZE - MSG_HEADER_SIZE) /* 4980 bytes */
 
 #define K_IDENT_SIZE      (2*sizeof(uint32_t))  /* 8 bytes */
-#define K_STRUCT_MIN_SIZE (K_IDENT_SIZE + 3*sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t) + K_LENGTH*sizeof(uint8_t) ) /* without peer num field */
-#define K_STRUCT_MAX_SIZE (K_IDENT_SIZE + 3*sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t) + K_LENGTH*sizeof(uint8_t) + MAX_PEER_NUM*sizeof(uint32_t))
+#define K_STRUCT_MIN_SIZE (K_IDENT_SIZE + 3*sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t) + K_LENGTH*sizeof(uint8_t)) /* without etcsID field */
+#define K_VALIDITY_SIZE   (K_IDENT_SIZE+2*sizeof(uint32_t))
+#define K_ENTITY_MIN_SIZE (K_IDENT_SIZE+sizeof(uint16_t))
+
+#define CMD_ADD_KEYS_MIN_SIZE        (MSG_HEADER_SIZE+sizeof(uint16_t))
+#define CMD_DEL_KEYS_MIN_SIZE        (MSG_HEADER_SIZE+sizeof(uint16_t))
+#define CMD_DEL_ALL_KEYS_SIZE        (MSG_HEADER_SIZE)
+#define CMD_UP_KEY_VAL_MIN_SIZE      (MSG_HEADER_SIZE+sizeof(uint16_t))
+#define CMD_UP_KEY_ENT_MIN_SIZE      (MSG_HEADER_SIZE+sizeof(uint16_t))
+#define CMD_REQUEST_KEY_OP_MIN_SIZE  (MSG_HEADER_SIZE+3*sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint16_t))
+#define CMD_REQUEST_KEY_DB_CK_SIZE   (MSG_HEADER_SIZE)
+#define NOTIF_KEY_UP_STATUS_SIZE     (MSG_HEADER_SIZE+K_IDENT_SIZE+sizeof(uint8_t))
+#define NOTIF_ACK_KEY_UP_STATUS_SIZE (MSG_HEADER_SIZE)
+#define NOTIF_SESSION_INIT_SIZE      (MSG_HEADER_SIZE + sizeof(uint8_t) * 3)
+#define NOTIF_END_UPDATE_SIZE        (MSG_HEADER_SIZE)
+#define NOTIF_RESPONSE_MIN_SIZE      (MSG_HEADER_SIZE+sizeof(uint8_t)+sizeof(uint16_t))
+#define NOTIF_KEY_OP_REQ_RCVD_SIZE   (MSG_HEADER_SIZE+sizeof(uint16_t))
+#define NOTIF_KEY_DB_CHECKSUM_SIZE   (MSG_HEADER_SIZE+CHECKSUM_SIZE)
+
+
 
 /*****************************************************************************
  * TYPEDEFS

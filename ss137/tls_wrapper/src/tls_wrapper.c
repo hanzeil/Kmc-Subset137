@@ -50,7 +50,8 @@
 
 /** @name SSL tuning
  **@{*/
-#define MAX_TLS_DES            (100U)
+#define MAX_TLS_DES          (100U)
+#define VERIFY_DEPTH         (1U)
 /**@}*/
 
 
@@ -223,7 +224,7 @@ static int32_t initTLS(void)
 	SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
 
 	/* set the verify depth*/
-	SSL_CTX_set_verify_depth(ctx,1);
+	SSL_CTX_set_verify_depth(ctx,VERIFY_DEPTH);
 
 	return(RETURN_SUCCESS);
 
@@ -234,7 +235,7 @@ static int32_t initTLS(void)
  *****************************************************************************/
 
 /* client */
-int32_t createClientTLS(int32_t* const sock)
+int32_t initClientTLS(int32_t* const sock)
 {
 	ASSERT(sock != NULL, E_NULL_POINTER);
 
@@ -313,7 +314,7 @@ int32_t connectTLS(uint32_t* const tls_des, const int32_t sock, const char* cons
 }
 
 /* server */
-int32_t createServerTLS(int32_t* const sock, const uint16_t l_port)
+int32_t initServerTLS(int32_t* const sock, const uint16_t l_port)
 {
 	struct sockaddr_in sa_serv;
 	
