@@ -118,7 +118,6 @@ typedef struct
 	uint8_t   msgType;
 } msg_header_t;
 
-
 typedef struct
 {
 	uint16_t   reqNum;

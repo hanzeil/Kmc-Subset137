@@ -4,5 +4,5 @@ LIBS=-lssl -lcrypto -ldl
 
 
 all:
-	gcc $(CFLAGS) $(INCLUDE) ../src/net_utils.c ../src/ss137_lib.c ../../tls_wrapper/src/tls_wrapper.c  kmc.c $(LIBS) -o kmc
+	gcc $(CFLAGS) -DKMC $(INCLUDE) ../src/net_utils.c ../src/ss137_lib.c ../../tls_wrapper/src/tls_wrapper.c  kmc.c $(LIBS) -o kmc
 	gcc $(CFLAGS) $(INCLUDE) ../src/net_utils.c ../src/ss137_lib.c ../../tls_wrapper/src/tls_wrapper.c  track.c $(LIBS) -o track

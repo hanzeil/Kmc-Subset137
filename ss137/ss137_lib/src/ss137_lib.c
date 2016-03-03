@@ -38,6 +38,8 @@
 * DEFINES
 ******************************************************************************/
 
+#define APP_TIMEOUT (100U)
+
 /*****************************************************************************
  * TYPEDEFS
  *****************************************************************************/
@@ -46,17 +48,16 @@
  * VARIABLES
  *****************************************************************************/
 
+static uint16_t mySeqNum = 0U;
+
 /*****************************************************************************
  * LOCAL FUNCTION PROTOTYPES
  *****************************************************************************/
-
-
 
 static int32_t buildMsgHeader(write_stream_t* const ostream,
 							  const uint32_t msg_length,
 							  const uint32_t msg_type,
 							  const session_t* const curr_session);
-
 
 static int32_t convertMsgHeaderToHost(msg_header_t* const header,
 									  read_stream_t* const istream);
@@ -94,14 +95,19 @@ static int32_t convertNotifKeyDBChecksumToHost(notif_key_db_checksum_t* const pa
 static int32_t convertMsgHeaderToHost(msg_header_t* const header,
 									  read_stream_t* const istream);
 
-static int32_t checkMsgHeader(const msg_header_t* const header,
-							  const uint32_t exp_msg_length,
-							  const uint32_t exp_sender,
-							  const uint32_t exp_seq_num,
-							  const uint32_t exp_trans_num);
+static int32_t checkMsgHeader(session_t* const curr_session,
+							  const msg_header_t* const header,
+							  const uint32_t exp_msg_length);
 
 static int32_t sendMsg(write_stream_t* const ostream,
 					   const uint32_t tls_des);
+
+static int32_t receiveMsg(read_stream_t* const istream,
+						  const uint32_t tls_des);
+
+static uint16_t getMySeqNum(void);
+
+static uint32_t increaseMySeqNum(void);
 
 /*****************************************************************************
  * LOCAL FUNCTION DECLARATIONS
@@ -110,8 +116,23 @@ static int32_t sendMsg(write_stream_t* const ostream,
 static uint32_t getMyEtcsIdExp(void)
 {
 	/* TBD decide how to get my id */
-	uint32_t myId = 0x11223344;
+#ifdef KMC
+	uint32_t myId = 0xAABBCCDD;	
+#else
+	uint32_t myId = 0x11223344;	
+#endif
 	return(myId);
+}
+
+static uint16_t getMySeqNum(void)
+{
+	return(mySeqNum);
+}
+
+static uint32_t increaseMySeqNum(void)
+{
+	mySeqNum++;
+	return(RETURN_SUCCESS);
 }
 
 static uint8_t getInterfaceVersion(void)
@@ -137,8 +158,8 @@ static int32_t buildMsgHeader(write_stream_t* const ostream,
 	header.version   = getInterfaceVersion();
 	header.recIDExp  = curr_session->peerEtcsIDExp;
 	header.sendIDExp = getMyEtcsIdExp();
-	header.transNum  = curr_session->myTransNum;
-	header.seqNum    = curr_session->mySeqNum;
+	header.transNum  = curr_session->transNum;
+	header.seqNum    = getMySeqNum();
 	header.msgType   = msg_type;
 
 	hostToNet32(ostream, header.msgLength);
@@ -507,7 +528,11 @@ int32_t sendNotifResponse(const notif_response_t* const payload,
 	/* serialize payload */
 	hostToNet8(&ostream, &payload->response, sizeof(uint8_t));
 	hostToNet16(&ostream, payload->reqNum);
-	hostToNet8(&ostream, payload->notificationList, sizeof(uint8_t)*payload->reqNum);
+
+	if(payload->reqNum != 0U)
+	{
+		hostToNet8(&ostream, payload->notificationList, sizeof(uint8_t)*payload->reqNum);
+	}
 
 	sendMsg(&ostream, curr_session->tls_des);
 
@@ -749,63 +774,71 @@ static int32_t convertNotifKeyDBChecksumToHost(notif_key_db_checksum_t* const pa
 	return(RETURN_SUCCESS);
 }
 
-static int32_t checkMsgHeader(const msg_header_t* const header,
-							  const uint32_t exp_msg_length,
-							  const uint32_t exp_sender,
-							  const uint32_t exp_seq_num,
-							  const uint32_t exp_trans_num)
+static int32_t checkMsgHeader(session_t* const curr_session,
+							  const msg_header_t* const header,
+							  const uint32_t exp_msg_length)
 {
 	int32_t ret_val = 0U;
 
 	ASSERT(header != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
 
-	if( header->sendIDExp != exp_sender )
+	if( header->sendIDExp != curr_session->peerEtcsIDExp )
 	{
 		/* wrong sender id */
 		ret_val = RESP_WRONG_SENDER_ID;
+		debug_print("Invalid senderID\n");
 	}
 	else if( header->recIDExp != getMyEtcsIdExp() )
 	{
 		/* wrong receiver id */
 		ret_val = RESP_WRONG_REC_ID;
+		debug_print("Invalid receivedID\n");
 	}
 	else if( header->msgLength !=  exp_msg_length )
 	{
 		/* wrong msg length */
 		ret_val = RESP_WRONG_LENGTH;
+		debug_print("Invalid msg length\n");
 	}
 	else if( header->msgType > NOTIF_KEY_DB_CHECKSUM )
 	{
 		/* msg type not supported */
 		ret_val = RESP_NOT_SUPPORTED;
+		debug_print("Invalid msg type\n");
 	}
 	else if( header->version !=  getInterfaceVersion() )
 	{
 		/* wrong version */
 		ret_val = RESP_WRONG_VERSION;
+		debug_print("Invalid interface version\n");
 	}
-	else if( header->seqNum !=  exp_seq_num )
+	/* for the NOTIF_SESSION_INIT  message the sequence number shall not be checked */
+	else if( (header->seqNum != (curr_session->peerSeqNum + 1)) &&
+			 (header->msgType != NOTIF_SESSION_INIT))
 	{
 		/* wrong sequence number */
 		ret_val = RESP_WRONG_SEQ_NUM;
+		debug_print("Invalid seq num\n");
 	}
-	else if( header->transNum !=  exp_trans_num )
+	else if( ((header->transNum !=  curr_session->transNum) && (header->msgType != NOTIF_END_OF_UPDATE)) ||
+			 ((header->transNum != 0U) &&  (header->msgType == NOTIF_END_OF_UPDATE)))
 	{
 		/* wrong transaction number */
 		ret_val = RESP_WRONG_TRANS_NUM;
+		debug_print("Invalid trans num:  received 0x%x exp 0x%x\n", curr_session->transNum, header->transNum);
 	}
 	else
 	{
 		/* valid header */
 		ret_val = RESP_OK;
 	}
+
+	/* set new sequence number */
+	curr_session->peerSeqNum++;
 	
 	return(ret_val);
 }
-
-/*****************************************************************************
- * PUBLIC FUNCTION DECLARATIONS
- *****************************************************************************/
 
 /* ostream shall be already initialized */
 static int32_t sendMsg(write_stream_t* const ostream,
@@ -839,12 +872,14 @@ static int32_t sendMsg(write_stream_t* const ostream,
 	debug_print("%s\n", dump_msg);
 #endif
 	
+	increaseMySeqNum();
+	
 	return(RETURN_SUCCESS);
 }
 
 /* istream shall be already initialized */
-int32_t receiveMsg(read_stream_t* const istream,
-				   const uint32_t tls_des)
+static int32_t receiveMsg(read_stream_t* const istream,
+						  const uint32_t tls_des)
 {
 
 	receiveTLS(&istream->validBytes, istream->buffer, (uint32_t)MSG_MAX_SIZE, tls_des);
@@ -867,8 +902,9 @@ int32_t receiveMsg(read_stream_t* const istream,
 	return(RETURN_SUCCESS);
 }
 
-
-
+/*****************************************************************************
+ * PUBLIC FUNCTION DECLARATIONS
+ *****************************************************************************/
 
 int32_t initAppSession(const uint32_t peerETCSID,
 					   session_t* const curr_session)
@@ -880,27 +916,30 @@ int32_t initAppSession(const uint32_t peerETCSID,
 
 	ASSERT(curr_session != NULL, E_NULL_POINTER);
 
+	curr_session->transNum = 0U;
 	curr_session->peerEtcsIDExp = peerETCSID;
 	
 	initReadStream(&input_msg);
 
 	msg_payload_sent.nVersion = NUM_VERSION;
 	msg_payload_sent.version = getInterfaceVersion();
-	msg_payload_sent.appTimeout = 100;
+	msg_payload_sent.appTimeout = APP_TIMEOUT;
 
 	sendNotifSessionInit(&msg_payload_sent, curr_session);
 
+	/* wait for session init message from the other peer */
 	receiveMsg(&input_msg, curr_session->tls_des);
 
 	convertMsgHeaderToHost(&msg_header, &input_msg);
 
-	checkMsgHeader(&msg_header,
-				   MSG_HEADER_SIZE+3*sizeof(uint8_t),
-				   curr_session->peerEtcsIDExp,
-				   msg_header.seqNum,
-				   curr_session->myTransNum);
+	if(checkMsgHeader(curr_session,
+					  &msg_header,
+					  MSG_HEADER_SIZE+3*sizeof(uint8_t)) != RETURN_SUCCESS)
+	{
+		err_print("Error on checking header\n");
+	}
 
-	if( msg_header.msgType != NOTIF_SESSION_INIT)
+	if( msg_header.msgType != NOTIF_SESSION_INIT )
 	{
 		/* errore */
 	}
@@ -909,9 +948,8 @@ int32_t initAppSession(const uint32_t peerETCSID,
 		convertNotifSessionInitToHost(&msg_payload_received, &input_msg);
 	}
 
-	curr_session->mySeqNum++;
-	curr_session->peerTransNum = msg_header.transNum;
 	curr_session->peerSeqNum = msg_header.seqNum;
+	curr_session->transNum++;
 
 	return(RETURN_SUCCESS);	
 }
@@ -922,7 +960,7 @@ int32_t endAppSession(session_t* const curr_session)
 	ASSERT(curr_session != NULL, E_NULL_POINTER);
 
 	/* the trans num for end session shall be set to 0 */
-	curr_session->myTransNum = 0U;
+	curr_session->transNum = 0U;
 		
 	sendNotifEndUpdate(curr_session);
 
@@ -961,9 +999,9 @@ int32_t startServerTLS(int32_t* const listen_sock,
 	return(RETURN_SUCCESS);
 }
 
-int32_t waitForTLSClient(uint32_t* const tls_des,
-						 int32_t* const client_sock,
-						 const int32_t listen_sock)
+int32_t listenForTLSClient(uint32_t* const tls_des,
+						   int32_t* const client_sock,
+						   const int32_t listen_sock)
 {
 	ASSERT(tls_des != NULL, E_NULL_POINTER);
 	ASSERT(client_sock != NULL, E_NULL_POINTER);
@@ -982,5 +1020,91 @@ int32_t closeTLSConnection(const uint32_t tls_des,
 	return(RETURN_SUCCESS);
 }
 
+int32_t waitForNotifResponse(session_t* const curr_session,
+							 notif_response_t* const notification_list)
+{
+	read_stream_t input_msg;
+	msg_header_t header;
+
+	initReadStream(&input_msg);
+		
+	receiveMsg(&input_msg, curr_session->tls_des);
+
+	convertMsgHeaderToHost(&header, &input_msg);
+
+	if(checkMsgHeader(curr_session,
+					  &header,
+					  input_msg.validBytes) != RETURN_SUCCESS)
+	{
+		err_print("Error on checking header\n");
+	}
 
 
+	if( header.msgType != NOTIF_RESPONSE )
+	{
+		/* TBD error */
+	}
+	else
+	{
+		convertNotifResponseToHost(notification_list, &input_msg);
+	}
+
+	return(RETURN_SUCCESS);
+}
+
+int32_t waitForChecksum(session_t* const curr_session,
+						notif_key_db_checksum_t* const checksum)
+{
+	read_stream_t input_msg;
+	msg_header_t header;
+
+	initReadStream(&input_msg);
+	
+	receiveMsg(&input_msg, curr_session->tls_des);
+
+	convertMsgHeaderToHost(&header, &input_msg);
+
+	if(checkMsgHeader(curr_session,
+					  &header,
+					  input_msg.validBytes) != RETURN_SUCCESS)
+	{
+		err_print("Error on checking header\n");
+	}
+
+
+	if( header.msgType != NOTIF_KEY_DB_CHECKSUM )
+	{
+		/* TBD error */
+	}
+	else
+	{
+		convertNotifKeyDBChecksumToHost(checksum, &input_msg);
+	}
+
+	return(RETURN_SUCCESS);
+}
+
+
+int32_t waitForRequest(uint32_t * const request_type,
+					   session_t* const curr_session)
+{
+	read_stream_t input_msg;
+	msg_header_t header;
+
+	initReadStream(&input_msg);
+	
+	receiveMsg(&input_msg, curr_session->tls_des);
+	
+	convertMsgHeaderToHost(&header, &input_msg);
+	
+	if(checkMsgHeader(curr_session,
+					  &header,
+					  input_msg.validBytes) != RETURN_SUCCESS)
+	{
+		err_print("Error on checking header\n");
+	}
+	
+	*request_type = header.msgType;
+	
+	return(RETURN_SUCCESS);
+}
