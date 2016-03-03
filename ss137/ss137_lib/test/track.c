@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
 
 	memset(&session, 0, sizeof(session_t));
 		
-	initServerConnection(&session.ssl_des, &sock, atoi(argv[1]));
+	initServerConnection(&session.tls_des, &sock, atoi(argv[1]));
 
 	initAppSession(0x11223344, &session);
 	

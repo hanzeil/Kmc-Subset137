@@ -15,6 +15,7 @@
 #include "common.h"
 #include "net_utils.h"
 #include "tls_wrapper.h"
+#include "msg_definitions.h"
 #include "ss137_lib.h"
 
 /* ------------------------------------------------------------------------------- */
@@ -603,14 +604,14 @@ int32_t endSession(uint32_t session_id)
 
 /* ostream shall be already initialized */
 int32_t sendMsg(write_stream_t* const ostream,
-				const uint32_t ssl_des)
+				const uint32_t tls_des)
 {
 
 	uint32_t bytes_sent = 0U;
 
 	ASSERT(ostream != NULL, E_NULL_POINTER);
 
-	sendTLS(&bytes_sent, ostream->buffer, ostream->curSize, ssl_des);
+	sendTLS(&bytes_sent, ostream->buffer, ostream->curSize, tls_des);
 
 	if( bytes_sent != ostream->curSize)
 	{
@@ -638,11 +639,11 @@ int32_t sendMsg(write_stream_t* const ostream,
 
 /* istream shall be already initialized */
 int32_t receiveMsg(read_stream_t* const istream,
-				   const uint32_t ssl_des)
+				   const uint32_t tls_des)
 {
 
 
-	receiveTLS(&istream->validBytes, istream->buffer, (uint32_t)MSG_MAX_SIZE, ssl_des);
+	receiveTLS(&istream->validBytes, istream->buffer, (uint32_t)MSG_MAX_SIZE, tls_des);
 
 	char dump_msg[2000];
 	char tmp_str[5];
@@ -663,34 +664,34 @@ int32_t receiveMsg(read_stream_t* const istream,
 	return(RETURN_SUCCESS);
 }
 
-int32_t initClientConnection(uint32_t* const ssl_des,
+int32_t initClientConnection(uint32_t* const tls_des,
 							 int32_t* const sock,
 							 const char* const r_ip,
 							 const uint16_t r_port)
 {
-	ASSERT(ssl_des != NULL, E_NULL_POINTER);
+	ASSERT(tls_des != NULL, E_NULL_POINTER);
 	ASSERT(r_ip != NULL, E_NULL_POINTER);
 	ASSERT(sock != NULL, E_NULL_POINTER);
 
 	createClientTLS(sock);
 
-	connectTLS(ssl_des, *sock, r_ip, r_port);
+	connectTLS(tls_des, *sock, r_ip, r_port);
 
 	return(RETURN_SUCCESS);
 }
 
-int32_t initServerConnection(uint32_t* const ssl_des,
+int32_t initServerConnection(uint32_t* const tls_des,
 							 int32_t* const client_sock,
 							 const uint16_t l_port)
 {
 	int32_t listen_sock;
 	
-	ASSERT(ssl_des != NULL, E_NULL_POINTER);
+	ASSERT(tls_des != NULL, E_NULL_POINTER);
 	ASSERT(client_sock != NULL, E_NULL_POINTER);
 
 	createServerTLS(&listen_sock, l_port);
 
-	acceptTLS(ssl_des, client_sock, listen_sock);
+	acceptTLS(tls_des, client_sock, listen_sock);
 
 	return(RETURN_SUCCESS);
 }
@@ -721,9 +722,9 @@ int32_t initAppSession(const uint32_t peerETCSID,
 			 NOTIF_SESSION_INIT,
 			 (void*)&msg_payload_sent);
 
-	sendMsg(&output_msg, curr_session->ssl_des);
+	sendMsg(&output_msg, curr_session->tls_des);
 
-	receiveMsg(&input_msg, curr_session->ssl_des);
+	receiveMsg(&input_msg, curr_session->tls_des);
 
 	convertMsgHeaderToHost(&msg_header, &input_msg);
 
@@ -766,7 +767,7 @@ int32_t endAppSession(session_t* const curr_session)
 
 	/* the trans num for end session shall be set to 0 */
 	curr_session->myTransNum = 0U;
-	sendMsg(&output_msg, curr_session->ssl_des);
+	sendMsg(&output_msg, curr_session->tls_des);
 
 	return(RETURN_SUCCESS);
 }

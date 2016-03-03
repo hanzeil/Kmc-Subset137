@@ -25,13 +25,13 @@
 #define RSA_CLIENT_KEY        "newkey.pem"
 #define RSA_CLIENT_CA_CERT    "./demoCA/cacert.pem"
 #define RSA_CLIENT_CA_PATH    "./demoCA/"
-#define MAX_SSL_DES            (100U)
+#define MAX_TLS_DES            (100U)
 
 const char allowed_ciphers[] = "AES256-GCM-SHA384";
 
 static SSL_CTX *ctx = NULL;
 
-static SSL *ssl_fds[MAX_SSL_DES];
+static SSL *tls_fds[MAX_TLS_DES];
 
 /* ------------------------------------------------------------------------------- */
 /* Local Functions Prototypes                                                      */
@@ -41,24 +41,24 @@ static int32_t getPeerCertificate(SSL* ssl);
 
 static int32_t initTLS(void);
 
-static int32_t findSSLDes(uint32_t * const ssl_des);
+static int32_t findTLSDes(uint32_t * const tls_des);
 
 /* ------------------------------------------------------------------------------- */
 /* Local Functions Bodies                                                          */
 /* ------------------------------------------------------------------------------- */
 
-static int32_t findSSLDes(uint32_t * const ssl_des)
+static int32_t findTLSDes(uint32_t * const tls_des)
 {
 	uint32_t i = 0U;
 	bool_t found = FALSE;
 
-	ASSERT(ssl_des != NULL, E_NULL_POINTER);
+	ASSERT(tls_des != NULL, E_NULL_POINTER);
 
-	for(i = 0U; i<MAX_SSL_DES; i++)
+	for(i = 0U; i<MAX_TLS_DES; i++)
 	{
-		if(ssl_fds[i] == NULL)
+		if(tls_fds[i] == NULL)
 		{
-			*ssl_des = i;
+			*tls_des = i;
 			found = TRUE;
 			break;
 		}
@@ -66,7 +66,7 @@ static int32_t findSSLDes(uint32_t * const ssl_des)
 
 	if(found == FALSE)
 	{
-		err_print("No valid ssl fd.\n");
+		err_print("No valid tls fd.\n");
 		return(E_TLS_ERROR);
 	}
 
@@ -196,7 +196,7 @@ int32_t createClientTLS(int32_t* const sock)
 	return(RETURN_SUCCESS);
 }
 
-int32_t connectTLS(uint32_t* const ssl_des, const int32_t sock, const char* const r_ip, const uint16_t r_port)
+int32_t connectTLS(uint32_t* const tls_des, const int32_t sock, const char* const r_ip, const uint16_t r_port)
 {
 	struct sockaddr_in server_addr;
 	SSL* ssl = NULL;
@@ -245,9 +245,9 @@ int32_t connectTLS(uint32_t* const ssl_des, const int32_t sock, const char* cons
 	/* TBD add check on cipher ???*/
 	debug_print("SSL connection using %s\n", SSL_get_cipher (ssl));
 
-	findSSLDes(ssl_des);
+	findTLSDes(tls_des);
 
-	ssl_fds[*ssl_des] = ssl;
+	tls_fds[*tls_des] = ssl;
 
 	getPeerCertificate(ssl);
 		
@@ -294,7 +294,7 @@ int32_t createServerTLS(int32_t* const sock, const uint16_t l_port)
 	return(RETURN_SUCCESS);
 }
 
-int32_t acceptTLS(uint32_t* const ssl_des, int32_t* const client_sock, const int32_t listen_sock)
+int32_t acceptTLS(uint32_t* const tls_des, int32_t* const client_sock, const int32_t listen_sock)
 {
 	struct sockaddr_in sa_cli;
 	int32_t  client_len = 0;
@@ -350,25 +350,25 @@ int32_t acceptTLS(uint32_t* const ssl_des, int32_t* const client_sock, const int
 
 	getPeerCertificate(ssl);
 
-	findSSLDes(ssl_des);
+	findTLSDes(tls_des);
 
-	ssl_fds[*ssl_des] = ssl;
+	tls_fds[*tls_des] = ssl;
 
 	return(RETURN_SUCCESS);
 }
 
-int32_t closeTLS(const uint32_t ssl_des, const int32_t sock)
+int32_t closeTLS(const uint32_t tls_des, const int32_t sock)
 {
-	if(!SSL_shutdown(ssl_fds[ssl_des]))
+	if(!SSL_shutdown(tls_fds[tls_des]))
  	{
 		ERR_print_errors_fp(stderr);
 		return(E_TLS_ERROR);
 	}
 
 	/* Free the SSL structure */
-	SSL_free(ssl_fds[ssl_des]);
+	SSL_free(tls_fds[tls_des]);
 
-	ssl_fds[ssl_des] = NULL;
+	tls_fds[tls_des] = NULL;
 
 	close(sock);
 	
@@ -378,10 +378,10 @@ int32_t closeTLS(const uint32_t ssl_des, const int32_t sock)
 int32_t sendTLS(uint32_t* const bytes_sent,
 				const uint8_t* const buf,
 				const uint32_t buf_len,
-				const uint32_t ssl_des)
+				const uint32_t tls_des)
 {
 	
-	*bytes_sent = SSL_write(ssl_fds[ssl_des], buf, buf_len);
+	*bytes_sent = SSL_write(tls_fds[tls_des], buf, buf_len);
 
 	return(RETURN_SUCCESS);
 }
@@ -389,9 +389,9 @@ int32_t sendTLS(uint32_t* const bytes_sent,
 int32_t receiveTLS(uint32_t* const bytes_received,
 				   uint8_t* const buf,
 				   const uint32_t buf_len,
-				   const uint32_t ssl_des)
+				   const uint32_t tls_des)
 {
-	*bytes_received = SSL_read(ssl_fds[ssl_des], buf, buf_len);
+	*bytes_received = SSL_read(tls_fds[tls_des], buf, buf_len);
 
 	return(RETURN_SUCCESS);
 }
