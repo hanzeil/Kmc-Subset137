@@ -1,3 +1,29 @@
+/**************************************************************************//**
+ *
+ * Definitions of messages for SUBSET-137
+ *
+ * This file ...
+ *
+ * @file: ss137/ss137_lib/include/msg_definitions.h
+ * $Author: $
+ * $Revision: $
+ * $Date: $
+ *
+ * History:
+ *
+ * Version     Date      Author         Change Description
+ *
+ *- $Id: $
+ *
+ ******************************************************************************/
+
+#ifndef KMC_MSG_DEFINITIONS_H_
+#define KMC_MSG_DEFINITIONS_H_
+
+/*****************************************************************************
+* DEFINES
+******************************************************************************/
+
 #define KMAC_SIZE         (24U)
 
 #define MIN_PEER_NUM      (1U)
@@ -18,13 +44,16 @@
 
 #define CHECKSUM_SIZE (20U) /* size of md4 checksum evaluated on DB */
 
-
 #define MSG_HEADER_SIZE      (4*sizeof(uint32_t) + sizeof(uint16_t) + 2*sizeof(uint8_t))  /* 20 bytes */
 #define MSG_PAYLOAD_MAX_SIZE (MSG_MAX_SIZE - MSG_HEADER_SIZE) /* 4980 bytes */
 
 #define K_IDENT_SIZE      (2*sizeof(uint32_t))  /* 8 bytes */
 #define K_STRUCT_MIN_SIZE (K_IDENT_SIZE + 3*sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t) + K_LENGTH*sizeof(uint8_t) ) /* without peer num field */
 #define K_STRUCT_MAX_SIZE (K_IDENT_SIZE + 3*sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t) + K_LENGTH*sizeof(uint8_t) + MAX_PEER_NUM*sizeof(uint32_t))
+
+/*****************************************************************************
+ * TYPEDEFS
+ *****************************************************************************/
 
 typedef struct
 {
@@ -193,3 +222,5 @@ typedef enum
 	KEY_CORRUPTED = 4,
 	WRONG_ID      = 5
 } NOTIFY_REASON;
+
+#endif /* KMC_MSG_DEFINITIONS_H_ */
