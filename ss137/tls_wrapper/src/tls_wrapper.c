@@ -1,6 +1,27 @@
-/* ------------------------------------------------------------------------------- */
-/* I n c l u d e s                                                                 */
-/* ------------------------------------------------------------------------------- */
+/**************************************************************************//**
+ *
+ * TLS wrapper for OpenSSL
+ *
+ * This file wraps the SS137-TLS-needs in an uniform API. This implementation
+ * uses OpenSSL as low-level library
+ *
+ * @file: ss137/tls_wrapper/src/tls_wrapper.c
+ * $Author: $
+ * $Revision: $
+ * $Date: $
+ *
+ * History:
+ *
+ * Version     Date      Author         Change Description
+ *
+ *- $Id: $
+ *
+ ******************************************************************************/
+
+
+/*****************************************************************************
+* INCLUDES
+******************************************************************************/
 
 /**
  * System headers
@@ -13,41 +34,75 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-#include "common.h"
+#include "common.h" 
 #include "tls_wrapper.h"
 
 
-/* ------------------------------------------------------------------------------- */
-/* d e f i n e   c o n s t a n t s   a n d   m a c r o s                           */
-/* ------------------------------------------------------------------------------- */
+/*****************************************************************************
+* DEFINES
+******************************************************************************/
 
-#define RSA_CLIENT_CERT       "newcert.pem"
-#define RSA_CLIENT_KEY        "newkey.pem"
-#define RSA_CLIENT_CA_CERT    "./demoCA/cacert.pem"
-#define RSA_CLIENT_CA_PATH    "./demoCA/"
+/** @name RSA-related pathnames
+ **@{*/
+#define RSA_CLIENT_CERT       "newcert.pem"                      /**< RSA Client Certificate pathname */
+#define RSA_CLIENT_KEY        "newkey.pem"                       /**< RSA Client Key pathname */
+#define RSA_CLIENT_CA_PATH    "./demoCA"                         /**< RSA Client root CA Certificate path */
+#define RSA_CLIENT_CA_CERT    RSA_CLIENT_CA_PATH "/cacert.pem"   /**< RSA Client root CA Certificate full pathname */
+/**@}*/
+
+
+/** @name SSL tuning
+ **@{*/
 #define MAX_TLS_DES            (100U)
+/**@}*/
 
-const char allowed_ciphers[] = "AES256-GCM-SHA384";
+
+/*****************************************************************************
+ * TYPEDEFS
+ *****************************************************************************/
+
+
+/*****************************************************************************
+ * VARIABLES
+ *****************************************************************************/
+
+/** List of ciphers. String is colon-separated i.e. "CIPHERA:CIPHERB:CIPHERC" */
+const char allowed_ciphers[] = "AES256-GCM-SHA384"; 
 
 static SSL_CTX *ctx = NULL;
 
 static SSL *tls_fds[MAX_TLS_DES];
 
-/* ------------------------------------------------------------------------------- */
-/* Local Functions Prototypes                                                      */
-/* ------------------------------------------------------------------------------- */
+/*****************************************************************************
+ * FUNCTION PROTOTYPES
+ *****************************************************************************/
 
+/**
+ * Some useful Doxygen comment for getPeerCertificate
+ */
 static int32_t getPeerCertificate(SSL* ssl);
 
+/**
+ * Some useful Doxygen comment for initTLS
+ */
 static int32_t initTLS(void);
 
-static int32_t findTLSDes(uint32_t * const tls_des);
+/**
+ * Some useful Doxygen comment findTLSDes
+ */
+static int32_t findTLSDes(uint32_t * const ssl_des);
 
-/* ------------------------------------------------------------------------------- */
-/* Local Functions Bodies                                                          */
-/* ------------------------------------------------------------------------------- */
+/*****************************************************************************
+ * FUNCTION DECLARATIONS
+ *****************************************************************************/
 
-static int32_t findTLSDes(uint32_t * const tls_des)
+/**
+ * Some useful Doxygen comment findTLSDes
+ */
+static int32_t findTLSDes
+(
+ uint32_t * const tls_des /**< [in] SSL context */
+)
 {
 	uint32_t i = 0U;
 	bool_t found = FALSE;
@@ -73,7 +128,13 @@ static int32_t findTLSDes(uint32_t * const tls_des)
 	return(RETURN_SUCCESS);
 }
 
-static int32_t getPeerCertificate(SSL* ssl)
+/**
+ * Some useful Doxygen comment getPeerCertificate
+ */
+static int32_t getPeerCertificate
+(
+ SSL* ssl /**< [in] SSL context */
+)
 {
 	char *str;
 	X509 *peer_cert;
