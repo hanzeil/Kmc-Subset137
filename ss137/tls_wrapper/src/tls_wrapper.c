@@ -174,7 +174,7 @@ static int32_t getPeerCertificate
 
 static int32_t initTLS(void)
 {
-	SSL_METHOD *meth = NULL;
+	const SSL_METHOD * meth = NULL;
 
 	/* Load encryption & hashing algorithms for the SSL program */
 	SSL_library_init();
