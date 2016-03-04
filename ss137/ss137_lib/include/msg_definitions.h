@@ -24,6 +24,8 @@
 * DEFINES
 ******************************************************************************/
 
+#define NUM_VERSION       (1U) /* number of supported version */
+
 #define KMAC_SIZE         (24U)
 
 #define MIN_PEER_NUM      (1U)
@@ -162,7 +164,7 @@ typedef struct
 typedef struct
 {
 	uint8_t nVersion;
-	uint8_t version;
+	uint8_t version[NUM_VERSION];
 	uint8_t appTimeout;
 }notif_session_init_t;
 

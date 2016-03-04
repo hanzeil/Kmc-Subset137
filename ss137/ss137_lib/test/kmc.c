@@ -13,31 +13,37 @@
 int main(int argc, char *argv[])
 {
 	session_t session;
+	uint8_t payload[5000];
 	notif_response_t notification_list;
+	uint32_t i = 0U;
 
 	memset(&session, 0, sizeof(session_t));
 
-	startClientTLS(&session.tls_id);
+	startClientTLS(&session.tlsID);
 
-	connectToTLSServer(session.tls_id, argv[1], atoi(argv[2]));
+	connectToTLSServer(session.tlsID, argv[1], atoi(argv[2]));
+
+	session.appTimeout = 0xFF;
 
 	initAppSession(0x11223344, &session);
 
 	/* first transaction */
-	sendCmdDeleteAllKeys(&session);
+	for(i = 0U; i < atoi(argv[3]); i++)
+	{
+		sendCmdDeleteAllKeys(&session);
+		
+		waitForResponse(payload, &session);
+		session.transNum++;
 
-	waitForNotifResponse(&session, &notification_list);
-	session.transNum++;
+		sendCmdReqKeyDBChecksum(&session);
+			
+		waitForResponse(payload, &session);
+		session.transNum++;
+	}
 
-	/* second transaction */
-	sendCmdDeleteAllKeys(&session);
-
-	waitForNotifResponse(&session, &notification_list);
-	session.transNum++;
-	
 	endAppSession(&session);
 
-	closeTLSConnection(session.tls_id);
+	closeTLSConnection(session.tlsID);
 
 	return(0);
 }

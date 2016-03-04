@@ -480,6 +480,18 @@ int32_t receiveTLS(uint32_t* const bytes_received,
 
 	*bytes_received = SSL_read(tls_descriptors[tls_id].ssl_ptr, buf, buf_len);
 
+	/* if(*bytes_received == 0) */
+	/* { */
+	/* 	if(SSL_get_error(tls_descriptors[tls_id].ssl_ptr, *bytes_received) == SSL_ERROR_ZERO_RETURN) */
+	/* 	{ */
+	/* 		return(E_TLS_READ); */
+	/* 	} */
+	/* 	else */
+	/* 	{ */
+	/* 		return(E_TLS_ERROR); */
+	/* 	} */
+	/* } */
+
 	return(RETURN_SUCCESS);
 }
 
