@@ -36,7 +36,7 @@ typedef struct
 	uint32_t transNum;
 	uint16_t peerSeqNum;
 	uint32_t peerEtcsIDExp;
-}session_t;
+} session_t;
 
 /*****************************************************************************
  * PUBLIC FUNCTION PROTOTYPES
@@ -58,22 +58,10 @@ int32_t closeTLSConnection(const uint32_t tls_id);
 
 
 /* subset-137 libary functions */
-int32_t initAppSession(const uint32_t peerETCSID,
-					   session_t* const curr_session);
+int32_t sendNotifSessionInit(const session_t* const curr_session);
 
-int32_t endAppSession(session_t* const curr_session);
+int32_t sendNotifEndUpdate(const session_t* const curr_session);
 
-int32_t waitForResponse(void* const payload,
-						session_t* const curr_session);
-
-
-int32_t waitForRequestFromKMCToKMC(void* const payload,
-								   uint32_t* const request_type,
-								   session_t* const curr_session);
-
-int32_t waitForRequestFromKMCToKMAC(void* const payload,
-									uint32_t* const request_type,
-									session_t* const curr_session);
 
 /* command */
 int32_t sendCmdAddKeys(const cmd_add_keys_t* const payload,
@@ -112,6 +100,22 @@ int32_t sendNotifKeyDBChecksum(const notif_key_db_checksum_t* const payload,
 int32_t sendNotifKeyOpReqRcvd(const notif_key_op_req_rcvd_t* const payload,
 							  const session_t* const curr_session);
 
+
+
+int32_t waitForSessionInit(void* const payload,
+						   session_t* const curr_session);
+
+int32_t waitForResponse(void* const payload,
+						session_t* const curr_session);
+
+
+int32_t waitForRequestFromKMCToKMC(void* const payload,
+								   uint32_t* const request_type,
+								   session_t* const curr_session);
+
+int32_t waitForRequestFromKMCToKMAC(void* const payload,
+									uint32_t* const request_type,
+									session_t* const curr_session);
 
 
 #endif /* KMC_SS137_LIB_H_ */

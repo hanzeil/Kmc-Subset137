@@ -25,8 +25,12 @@ int main(int argc, char *argv[])
 		listenForTLSClient(session.tlsID);
 
 		session.appTimeout = 0xFF;
-		initAppSession(0xAABBCCDD, &session);
+		session.peerEtcsIDExp = 0xAABBCCDD;
 
+		sendNotifSessionInit(&session);
+		
+		waitForSessionInit(payload, &session);
+		session.transNum++;
 		while(1)
 		{
 			waitForRequestFromKMCToKMAC(payload, &request_type, &session);

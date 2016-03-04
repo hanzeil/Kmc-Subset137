@@ -1,27 +1,27 @@
 /**************************************************************************//**
- *
- * TLS wrapper for OpenSSL
- *
- * This file wraps the SS137-TLS-needs in an uniform API. This implementation
- * uses OpenSSL as low-level library
- *
- * @file: ss137/tls_wrapper/src/tls_wrapper.c
- * $Author: $
- * $Revision: $
- * $Date: $
- *
- * History:
- *
- * Version     Date      Author         Change Description
- *
- *- $Id: $
- *
- ******************************************************************************/
+																			 *
+																			 * TLS wrapper for OpenSSL
+																			 *
+																			 * This file wraps the SS137-TLS-needs in an uniform API. This implementation
+																			 * uses OpenSSL as low-level library
+																			 *
+																			 * @file: ss137/tls_wrapper/src/tls_wrapper.c
+																			 * $Author: $
+																			 * $Revision: $
+																			 * $Date: $
+																			 *
+																			 * History:
+																			 *
+																			 * Version     Date      Author         Change Description
+																			 *
+																			 *- $Id: $
+																			 *
+																			 ******************************************************************************/
 
 
 /*****************************************************************************
-* INCLUDES
-******************************************************************************/
+ * INCLUDES
+ ******************************************************************************/
 
 #include <stdint.h>
 #include <unistd.h>
@@ -36,8 +36,8 @@
 
 
 /*****************************************************************************
-* DEFINES
-******************************************************************************/
+ * DEFINES
+ ******************************************************************************/
 
 /** @name RSA-related pathnames
  **@{*/
@@ -107,8 +107,8 @@ static int32_t findTLSDes(uint32_t * const tls_id);
  */
 static int32_t findTLSDes
 (
- uint32_t * const tls_id /**< [in] SSL context */
-)
+	uint32_t * const tls_id /**< [in] SSL context */
+	)
 {
 	uint32_t i = 0U;
 	bool_t found = FALSE;
@@ -140,8 +140,8 @@ static int32_t findTLSDes
  */
 static int32_t getPeerCertificate
 (
- SSL* ssl /**< [in] SSL context */
-)
+	SSL* ssl /**< [in] SSL context */
+	)
 {
 	char *str;
 	X509 *peer_cert;

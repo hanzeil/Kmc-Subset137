@@ -14,7 +14,6 @@ int main(int argc, char *argv[])
 {
 	session_t session;
 	uint8_t payload[5000];
-	notif_response_t notification_list;
 	uint32_t i = 0U;
 
 	memset(&session, 0, sizeof(session_t));
@@ -24,9 +23,13 @@ int main(int argc, char *argv[])
 	connectToTLSServer(session.tlsID, argv[1], atoi(argv[2]));
 
 	session.appTimeout = 0xFF;
+	session.peerEtcsIDExp = 0x11223344;
 
-	initAppSession(0x11223344, &session);
+	sendNotifSessionInit(&session);
 
+	waitForSessionInit(payload, &session);
+	session.transNum++;
+	
 	/* first transaction */
 	for(i = 0U; i < atoi(argv[3]); i++)
 	{
@@ -41,7 +44,7 @@ int main(int argc, char *argv[])
 		session.transNum++;
 	}
 
-	endAppSession(&session);
+	sendNotifEndUpdate(&session);
 
 	closeTLSConnection(session.tlsID);
 

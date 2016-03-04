@@ -1,25 +1,25 @@
 /**************************************************************************//**
- *
- * ...
- *
- * This file ...
- *
- * @file: ss137/ss137_lib/src/ss137_lib.c
- * $Author: $
- * $Revision: $
- * $Date: $
- *
- * History:
- *
- * Version     Date      Author         Change Description
- *
- *- $Id: $
- *
- ******************************************************************************/
+																			 *
+																			 * ...
+																			 *
+																			 * This file ...
+																			 *
+																			 * @file: ss137/ss137_lib/src/ss137_lib.c
+																			 * $Author: $
+																			 * $Revision: $
+																			 * $Date: $
+																			 *
+																			 * History:
+																			 *
+																			 * Version     Date      Author         Change Description
+																			 *
+																			 *- $Id: $
+																			 *
+																			 ******************************************************************************/
 
 /*****************************************************************************
-* INCLUDES
-******************************************************************************/
+ * INCLUDES
+ ******************************************************************************/
 
 #include <stdio.h>     /* for fopen, snprintf, etc... */
 #include <string.h>    /* for memmove, memcmp, memset */
@@ -35,8 +35,8 @@
 #include "ss137_lib.h"
 
 /*****************************************************************************
-* DEFINES
-******************************************************************************/
+ * DEFINES
+ ******************************************************************************/
 
 /*****************************************************************************
  * TYPEDEFS
@@ -57,7 +57,8 @@ static const uint8_t supportedVersion[NUM_VERSION] = {2U};
 static int32_t buildMsgHeader(write_stream_t* const ostream,
 							  const uint32_t msg_length,
 							  const uint32_t msg_type,
-							  const session_t* const curr_session);
+							  const uint32_t peer_etcs_id_exp,
+							  const uint32_t trans_num);
 
 static int32_t convertMsgHeaderToHost(msg_header_t* const header,
 									  read_stream_t* const istream);
@@ -146,7 +147,8 @@ static void increaseMySeqNum(void)
 static int32_t buildMsgHeader(write_stream_t* const ostream,
 							  const uint32_t msg_length,
 							  const uint32_t msg_type,
-							  const session_t* const curr_session)
+							  const uint32_t peer_etcs_id_exp,
+							  const uint32_t trans_num)
 {
 
 	msg_header_t header;
@@ -162,9 +164,9 @@ static int32_t buildMsgHeader(write_stream_t* const ostream,
 	
 	header.msgLength = msg_length;
 	header.version   = supportedVersion[0];
-	header.recIDExp  = curr_session->peerEtcsIDExp;
+	header.recIDExp  = peer_etcs_id_exp;
 	header.sendIDExp = my_etcs_id_exp;
-	header.transNum  = curr_session->transNum;
+	header.transNum  = trans_num;
 	header.seqNum    = my_seq_num;
 	header.msgType   = msg_type;
 
@@ -505,38 +507,56 @@ static int32_t receiveMsg(read_stream_t* const istream,
 	return(RETURN_SUCCESS);
 }
 
-static int32_t sendNotifSessionInit(const notif_session_init_t* const payload,
-							 const session_t* const curr_session)
+
+
+/*****************************************************************************
+ * PUBLIC FUNCTION DECLARATIONS
+ *****************************************************************************/
+
+int32_t sendNotifSessionInit(const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
+	uint32_t tmp_trans_num = 0U;
 	write_stream_t ostream;
-	
-	ASSERT((curr_session != NULL) && (payload != NULL), E_NULL_POINTER);
+	uint8_t tmp_num_version = NUM_VERSION;
 
-	/* prepare output buffer */
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+
+	/* the transaction number for init
+	   session shall be set to 0 */
+	tmp_trans_num = 0U;
+
+	/* initialize output buffer */
 	initWriteStream(&ostream);
 	
-	/* prepare message header */
+	/* evaluate message length */
 	msg_length = NOTIF_SESSION_INIT_SIZE;
-	
-	buildMsgHeader(&ostream, msg_length, NOTIF_SESSION_INIT, curr_session);
+
+	/* prepare msg header */
+	buildMsgHeader(&ostream, msg_length, NOTIF_SESSION_INIT,
+				   curr_session->peerEtcsIDExp, tmp_trans_num);
 
 	/* serialize payload */
-	hostToNet8(&ostream, &payload->nVersion, sizeof(uint8_t));
-	hostToNet8(&ostream, payload->version, NUM_VERSION*sizeof(uint8_t));
-	hostToNet8(&ostream, &payload->appTimeout, sizeof(uint8_t));
+	hostToNet8(&ostream, &tmp_num_version, sizeof(uint8_t));
+	hostToNet8(&ostream, supportedVersion, NUM_VERSION*sizeof(uint8_t));
+	hostToNet8(&ostream, &curr_session->appTimeout, sizeof(uint8_t));
 
 	sendMsg(&ostream, curr_session->tlsID);
 	
 	return(RETURN_SUCCESS);
 }
 
-static int32_t sendNotifEndUpdate(const session_t* const curr_session)
+int32_t sendNotifEndUpdate(const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
+	uint32_t tmp_trans_num = 0U;
 	write_stream_t ostream;
 	
 	ASSERT(curr_session != NULL, E_NULL_POINTER);
+
+	/* the transaction number for end
+	   session shall be set to 0 */
+	tmp_trans_num = 0U;
 
 	/* prepare output buffer */
 	initWriteStream(&ostream);
@@ -544,17 +564,13 @@ static int32_t sendNotifEndUpdate(const session_t* const curr_session)
 	/* prepare message header */
 	msg_length = NOTIF_END_UPDATE_SIZE;
 	
-	buildMsgHeader(&ostream, msg_length, NOTIF_END_OF_UPDATE, curr_session);
+	buildMsgHeader(&ostream, msg_length, NOTIF_END_OF_UPDATE,
+				   curr_session->peerEtcsIDExp, tmp_trans_num);
 
 	sendMsg(&ostream, curr_session->tlsID);
 	
 	return(RETURN_SUCCESS);
 }
-
-
-/*****************************************************************************
- * PUBLIC FUNCTION DECLARATIONS
- *****************************************************************************/
 
 int32_t sendCmdAddKeys(const cmd_add_keys_t* const payload,
 					   const session_t* const curr_session)
@@ -579,7 +595,8 @@ int32_t sendCmdAddKeys(const cmd_add_keys_t* const payload,
 		msg_length += payload->kStructList[k].peerNum*sizeof(uint32_t);
 	}
 	
-	buildMsgHeader(&ostream, msg_length, CMD_ADD_KEYS, curr_session);
+	buildMsgHeader(&ostream, msg_length, CMD_ADD_KEYS,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
 	/* serialize payload */
 	hostToNet16(&ostream, payload->reqNum);
@@ -626,7 +643,8 @@ int32_t sendCmdDeleteKeys(const cmd_del_keys_t* const payload,
 	/* prepare message header */
 	msg_length = CMD_DEL_KEYS_MIN_SIZE + (K_IDENT_SIZE * payload->reqNum);
 	
-	buildMsgHeader(&ostream, msg_length, CMD_DELETE_KEYS, curr_session);
+	buildMsgHeader(&ostream, msg_length, CMD_DELETE_KEYS,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
 	/* serialize payload */
 	hostToNet16(&ostream, payload->reqNum);
@@ -655,11 +673,11 @@ int32_t sendCmdDeleteAllKeys(const session_t* const curr_session)
 	/* prepare message header */
 	msg_length = CMD_DEL_ALL_KEYS_SIZE;
 	
-	buildMsgHeader(&ostream, msg_length, CMD_DELETE_ALL_KEYS, curr_session);
+	buildMsgHeader(&ostream, msg_length, CMD_DELETE_ALL_KEYS,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
 	/* this command does not have payload,
 	   it consists only of the message header */
-	
 	sendMsg(&ostream, curr_session->tlsID);
 		
 	return(RETURN_SUCCESS);
@@ -681,7 +699,8 @@ int32_t sendCmdUpKeyValidities(const cmd_up_key_val_t* const payload,
 	/* prepare message header */
 	msg_length = CMD_UP_KEY_VAL_MIN_SIZE + (K_VALIDITY_SIZE*payload->reqNum);
 	
-	buildMsgHeader(&ostream, msg_length, CMD_UPDATE_KEY_VALIDITIES, curr_session);
+	buildMsgHeader(&ostream, msg_length, CMD_UPDATE_KEY_VALIDITIES,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
 	/* serialize payload */
 	hostToNet16(&ostream, payload->reqNum);
@@ -721,7 +740,8 @@ int32_t sendCmdUpKeyEntities(const cmd_up_key_ent_t* const payload,
 		msg_length += payload->kEntityList[i].peerNum*sizeof(uint32_t);
 	}
 	
-	buildMsgHeader(&ostream, msg_length, CMD_UPDATE_KEY_ENTITIES, curr_session);
+	buildMsgHeader(&ostream, msg_length, CMD_UPDATE_KEY_ENTITIES,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
 	/* serialize payload */
 	hostToNet16(&ostream, payload->reqNum);
@@ -755,13 +775,14 @@ int32_t sendCmdReqKeyOperation(const cmd_req_key_op_t* const payload,
 	ASSERT((curr_session != NULL) && (payload != NULL), E_NULL_POINTER);
 	ASSERT(strlen(payload->text) < MAX_TEXT_LENGTH, E_NULL_POINTER);
 
-		/* prepare output buffer */
+	/* prepare output buffer */
 	initWriteStream(&ostream);
 	
 	/* prepare message header */
 	msg_length = CMD_REQUEST_KEY_OP_MIN_SIZE+strlen(payload->text);
 	
-	buildMsgHeader(&ostream, msg_length, CMD_REQUEST_KEY_OPERATION, curr_session);
+	buildMsgHeader(&ostream, msg_length, CMD_REQUEST_KEY_OPERATION,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
 	/* serialize payload */
 
@@ -796,7 +817,8 @@ int32_t sendCmdReqKeyDBChecksum(const session_t* const curr_session)
 	/* prepare message header */
 	msg_length = CMD_REQUEST_KEY_DB_CK_SIZE;
 	
-	buildMsgHeader(&ostream, msg_length, CMD_REQUEST_KEY_DB_CHECKSUM, curr_session);
+	buildMsgHeader(&ostream, msg_length, CMD_REQUEST_KEY_DB_CHECKSUM,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
 	sendMsg(&ostream, curr_session->tlsID);
 	
@@ -817,8 +839,9 @@ int32_t sendNotifKeyUpdateStatus(const notif_key_up_status_t* const payload,
 	/* prepare message header */
 	msg_length = NOTIF_KEY_UP_STATUS_SIZE;
 	
-	buildMsgHeader(&ostream, msg_length, NOTIF_KEY_UPDATE_STATUS, curr_session);
-
+	buildMsgHeader(&ostream, msg_length, NOTIF_KEY_UPDATE_STATUS,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
+	
 	/* serialize payload */
 	hostToNet32(&ostream, payload->kIdent.genID);
 	hostToNet32(&ostream, payload->kIdent.serNum);
@@ -842,7 +865,8 @@ int32_t sendNotifAckKeyUpStatus(const session_t* const curr_session)
 	/* prepare message header */
 	msg_length = NOTIF_ACK_KEY_UP_STATUS_SIZE;
 	
-	buildMsgHeader(&ostream, msg_length, NOTIF_ACK_KEY_UPDATE_STATUS, curr_session);
+	buildMsgHeader(&ostream, msg_length, NOTIF_ACK_KEY_UPDATE_STATUS,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
 	sendMsg(&ostream, curr_session->tlsID);
 	
@@ -864,7 +888,8 @@ int32_t sendNotifResponse(const notif_response_t* const payload,
 	/* prepare message header */
 	msg_length = NOTIF_RESPONSE_MIN_SIZE+sizeof(uint8_t)*payload->reqNum;
 	
-	buildMsgHeader(&ostream, msg_length, NOTIF_RESPONSE, curr_session);
+	buildMsgHeader(&ostream, msg_length, NOTIF_RESPONSE,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
 	/* serialize payload */
 	hostToNet8(&ostream, &payload->response, sizeof(uint8_t));
@@ -882,7 +907,7 @@ int32_t sendNotifResponse(const notif_response_t* const payload,
 
 
 int32_t sendNotifKeyOpReqRcvd(const notif_key_op_req_rcvd_t* const payload,
-							   const session_t* const curr_session)
+							  const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -895,7 +920,8 @@ int32_t sendNotifKeyOpReqRcvd(const notif_key_op_req_rcvd_t* const payload,
 	/* prepare message header */
 	msg_length = NOTIF_KEY_OP_REQ_RCVD_SIZE;
 	
-	buildMsgHeader(&ostream, msg_length, NOTIF_KEY_OPERATION_REQ_RCVD, curr_session);
+	buildMsgHeader(&ostream, msg_length, NOTIF_KEY_OPERATION_REQ_RCVD,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
 	/* serialize payload */
 	hostToNet16(&ostream, payload->maxTime);
@@ -919,7 +945,8 @@ int32_t sendNotifKeyDBChecksum(const notif_key_db_checksum_t* const payload,
 	/* prepare message header */
 	msg_length = NOTIF_KEY_DB_CHECKSUM_SIZE;
 	
-	buildMsgHeader(&ostream, msg_length, NOTIF_KEY_DB_CHECKSUM, curr_session);
+	buildMsgHeader(&ostream, msg_length, NOTIF_KEY_DB_CHECKSUM,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
 	/* serialize payload */
 	hostToNet8(&ostream, payload->checksum, (uint32_t)CHECKSUM_SIZE);
@@ -929,70 +956,6 @@ int32_t sendNotifKeyDBChecksum(const notif_key_db_checksum_t* const payload,
 	return(RETURN_SUCCESS);
 }
 
-int32_t initAppSession(const uint32_t peerETCSID,
-					   session_t* const curr_session)
-{
-	notif_session_init_t msg_payload_sent;
-	notif_session_init_t msg_payload_received;
-	read_stream_t input_msg;
-	msg_header_t msg_header;
-	int32_t ret_val_header = -1;
-
-	ASSERT(curr_session != NULL, E_NULL_POINTER);
-
-	curr_session->transNum = 0U;
-	curr_session->peerEtcsIDExp = peerETCSID;
-	
-	initReadStream(&input_msg);
-
-	msg_payload_sent.nVersion = NUM_VERSION;
-	memmove(msg_payload_sent.version, supportedVersion, NUM_VERSION);
-	msg_payload_sent.appTimeout = curr_session->appTimeout;
-
-	sendNotifSessionInit(&msg_payload_sent, curr_session);
-
-	/* wait for session init message from the other peer */
-	receiveMsg(&input_msg, curr_session->tlsID);
-
-	convertMsgHeaderToHost(&msg_header, &input_msg);
-
-	ret_val_header = checkMsgHeader(curr_session,
-									&msg_header,
-									NOTIF_SESSION_INIT_SIZE);
-	if( ret_val_header != RESP_OK)
-	{
-		err_print("Error on checking header\n");
-	}
-	else
-	{
-		if( msg_header.msgType != NOTIF_SESSION_INIT )
-		{
-			/* errore */
-		}
-		else
-		{
-			convertNotifSessionInitToHost(&msg_payload_received, &input_msg);
-		}
-		curr_session->peerSeqNum = msg_header.seqNum;
-		curr_session->transNum++;
-	}
-
-	return(RETURN_SUCCESS);	
-}
-
-int32_t endAppSession(session_t* const curr_session)
-{
-
-	ASSERT(curr_session != NULL, E_NULL_POINTER);
-
-	/* the transaction number for end
-	   session shall be set to 0 */
-	curr_session->transNum = 0U;
-		
-	sendNotifEndUpdate(curr_session);
-
-	return(RETURN_SUCCESS);
-}
 
 int32_t startClientTLS(uint32_t* const tls_id)
 {
@@ -1039,12 +1002,59 @@ int32_t closeTLSConnection(const uint32_t tls_id)
 	return(RETURN_SUCCESS);
 }
 
+
+int32_t waitForSessionInit(void* const payload,
+						   session_t* const curr_session)
+{
+	read_stream_t input_msg;
+	msg_header_t header;
+	int32_t ret_val_header = -1;
+
+	ASSERT(payload != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	
+	initReadStream(&input_msg);
+		
+	receiveMsg(&input_msg, curr_session->tlsID);
+
+	convertMsgHeaderToHost(&header, &input_msg);
+
+	ret_val_header = checkMsgHeader(curr_session,
+									&header,
+									input_msg.validBytes);
+	
+	if( ret_val_header != RESP_OK)
+	{
+		err_print("Error on checking header\n");
+	}
+	else
+	{
+		if( header.msgType != NOTIF_SESSION_INIT )
+		{
+			err_print("Unexpected msg type received: rec %d\n", header.msgType);
+			ret_val_header = RESP_NOT_SUPPORTED;
+			return(ret_val_header);
+		}
+		else
+		{
+			convertNotifSessionInitToHost((notif_session_init_t*)payload, &input_msg);
+		}
+		curr_session->peerSeqNum = header.seqNum;
+	}
+
+	return(RETURN_SUCCESS);
+}
+
+
 int32_t waitForResponse(void* const payload,
 						session_t* const curr_session)
 {
 	read_stream_t input_msg;
 	msg_header_t header;
 	int32_t ret_val_header = -1;
+
+	ASSERT(payload != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
 
 	initReadStream(&input_msg);
 		
@@ -1077,6 +1087,7 @@ int32_t waitForResponse(void* const payload,
 			return(ret_val_header);
 		}
 	}
+	
 	return(RETURN_SUCCESS);
 }
 
@@ -1089,6 +1100,10 @@ int32_t waitForRequestFromKMCToKMAC(void* const payload,
 	msg_header_t header;
 	int32_t ret_val_header = -1;
 
+	ASSERT(payload != NULL, E_NULL_POINTER);
+	ASSERT(request_type != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	
 	initReadStream(&input_msg);
 	
 	receiveMsg(&input_msg, curr_session->tlsID);
@@ -1153,6 +1168,10 @@ int32_t waitForRequestFromKMCToKMC(void* const payload,
 	msg_header_t header;
 	int32_t ret_val_header = -1;
 
+	ASSERT(payload != NULL, E_NULL_POINTER);
+	ASSERT(request_type != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	
 	initReadStream(&input_msg);
 	
 	receiveMsg(&input_msg, curr_session->tlsID);
