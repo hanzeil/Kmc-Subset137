@@ -13,14 +13,13 @@
 int main(int argc, char *argv[])
 {
 	session_t session;
-	int32_t sock;
 	notif_response_t notification_list;
 
 	memset(&session, 0, sizeof(session_t));
 
-	startClientTLS(&sock);
+	startClientTLS(&session.tls_id);
 
-	connectToTLSServer(&session.tls_des, sock, argv[1], atoi(argv[2]));
+	connectToTLSServer(session.tls_id, argv[1], atoi(argv[2]));
 
 	initAppSession(0x11223344, &session);
 
@@ -38,7 +37,7 @@ int main(int argc, char *argv[])
 	
 	endAppSession(&session);
 
-	closeTLSConnection(session.tls_des, sock);
+	closeTLSConnection(session.tls_id);
 
 	return(0);
 }

@@ -7,11 +7,10 @@
 
 int main(int32_t argc, char * argv[])
 {
-	int32_t     sock;
 	char    buf [4096];
 	char    hello[80];
 
-	uint32_t tls_des;
+	uint32_t tls_id;
 	uint32_t bytes_received = 0U;
 	uint32_t bytes_sent = 0U;
 
@@ -19,9 +18,9 @@ int main(int32_t argc, char * argv[])
 	
 	/* ------------------------------------------------------------- */
 	/* Set up a TCP socket */
-	initClientTLS(&sock);
+	initClientTLS(&tls_id);
 
-	connectTLS(&tls_des, sock, argv[1], atoi(argv[2]));
+	connectTLS(tls_id, argv[1], atoi(argv[2]));
 
 	while( hello[0] != 'q')
 	{
@@ -30,16 +29,16 @@ int main(int32_t argc, char * argv[])
 		
 		/*-------- DATA EXCHANGE - send message and receive reply. -------*/
 		/* Send data to the TLS server */
-		sendTLS(&bytes_sent, (uint8_t*)hello, strlen(hello), tls_des);
+		sendTLS(&bytes_sent, (uint8_t*)hello, strlen(hello), tls_id);
 		
 		/* Receive data from the TLS server */
-		receiveTLS(&bytes_received, (uint8_t*)buf, 4096, tls_des);
+		receiveTLS(&bytes_received, (uint8_t*)buf, 4096, tls_id);
 		
 		buf[bytes_received] = '\0';
 		printf ("Received %d chars:'%s'\n", bytes_received, buf);
 	}
 
-	closeTLS(tls_des, sock);
+	closeTLS(tls_id);
 
 	/* cleanup all structure */
 	exitTLS();

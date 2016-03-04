@@ -12,18 +12,16 @@
 
 int main(int argc, char *argv[])
 {
-	int32_t client_sock = 0;
-	int32_t listen_sock = 0;
 	session_t session;
 	uint32_t request_type = 0U;
 
 	memset(&session, 0, sizeof(session_t));
 
-	startServerTLS(&listen_sock, atoi(argv[1]));
+	startServerTLS(&session.tls_id, atoi(argv[1]));
 
 	while(1)
 	{
-		listenForTLSClient(&session.tls_des, &client_sock, listen_sock);
+		listenForTLSClient(session.tls_id);
 
 		initAppSession(0xAABBCCDD, &session);
 
@@ -48,7 +46,7 @@ int main(int argc, char *argv[])
 			session.transNum++;
 		}
 
-		closeTLSConnection(session.tls_des, client_sock);
+		closeTLSConnection(session.tls_id);
 	}
 	
 	return(0);

@@ -34,7 +34,7 @@
 
 typedef struct
 {
-	uint32_t tls_des;
+	uint32_t tls_id;
 	uint32_t transNum;
 	uint16_t peerSeqNum;
 	uint32_t peerEtcsIDExp;
@@ -44,22 +44,18 @@ typedef struct
  * PUBLIC FUNCTION PROTOTYPES
  *****************************************************************************/
 
-int32_t startClientTLS(int32_t* const sock);
+int32_t startClientTLS(uint32_t* const tls_id);
 
-int32_t connectToTLSServer(uint32_t* const tls_des,
-						   const int32_t sock,
-						   const char* const r_ip,
-						   const uint16_t r_port);
-	
-int32_t startServerTLS(int32_t* const listen_sock,
+int32_t startServerTLS(uint32_t* const tls_id,
 					   const uint16_t l_port);
 
-int32_t listenForTLSClient(uint32_t* const tls_des,
-						   int32_t* const client_sock,
-						   const int32_t listen_sock);
+int32_t connectToTLSServer(const uint32_t const tls_id,
+						   const char* const r_ip,
+						   const uint16_t r_port);
 
-int32_t closeTLSConnection(const uint32_t tls_des,
-						   const int32_t sock);
+int32_t listenForTLSClient(const uint32_t tls_id);
+
+int32_t closeTLSConnection(const uint32_t tls_id);
 
 int32_t initAppSession(const uint32_t peerETCSID,
 					   session_t* const curr_session);

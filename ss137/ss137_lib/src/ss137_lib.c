@@ -100,10 +100,10 @@ static int32_t checkMsgHeader(session_t* const curr_session,
 							  const uint32_t exp_msg_length);
 
 static int32_t sendMsg(write_stream_t* const ostream,
-					   const uint32_t tls_des);
+					   const uint32_t tls_id);
 
 static int32_t receiveMsg(read_stream_t* const istream,
-						  const uint32_t tls_des);
+						  const uint32_t tls_id);
 
 static uint16_t getMySeqNum(void);
 
@@ -221,7 +221,7 @@ int32_t sendCmdAddKeys(const cmd_add_keys_t* const payload,
 		hostToNet32(&ostream, payload->kStructList[i].endValidity);
 	}
 
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 	
 	return(RETURN_SUCCESS);
 }
@@ -254,7 +254,7 @@ int32_t sendCmdDeleteKeys(const cmd_del_keys_t* const payload,
 		hostToNet32(&ostream, payload->kIdentList[i].serNum);
 	}
 
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 		
 	return(RETURN_SUCCESS);
 }
@@ -277,7 +277,7 @@ int32_t sendCmdDeleteAllKeys(const session_t* const curr_session)
 	/* this command does not have payload,
 	   it consists only of the message header */
 	
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 		
 	return(RETURN_SUCCESS);
 }
@@ -311,7 +311,7 @@ int32_t sendCmdUpKeyValidities(const cmd_up_key_val_t* const payload,
 		hostToNet32(&ostream, payload->kValidityList[i].endValidity);
 	}
 
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 
 	return(RETURN_SUCCESS);
 }
@@ -357,7 +357,7 @@ int32_t sendCmdUpKeyEntities(const cmd_up_key_ent_t* const payload,
 		}
 	}
 
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 	
 	return(RETURN_SUCCESS);
 }
@@ -389,7 +389,7 @@ int32_t sendCmdReqKeyOperation(const cmd_req_key_op_t* const payload,
 	hostToNet32(&ostream,  payload->textLength);
 	hostToNet8(&ostream, (uint8_t*)payload->text, payload->textLength);
 
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 	
 	return(RETURN_SUCCESS);
 }
@@ -409,7 +409,7 @@ int32_t sendCmdReqKeyDBChecksum(const session_t* const curr_session)
 	
 	buildMsgHeader(&ostream, msg_length, CMD_REQUEST_KEY_DB_CHECKSUM, curr_session);
 
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 	
 	return(RETURN_SUCCESS);
 }
@@ -435,7 +435,7 @@ int32_t sendNotifKeyUpdateStatus(const notif_key_up_status_t* const payload,
 	hostToNet32(&ostream, payload->kIdent.serNum);
 	hostToNet8(&ostream, &payload->kStatus, sizeof(uint8_t));
 
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 
 	return(RETURN_SUCCESS);
 }
@@ -455,7 +455,7 @@ int32_t sendNotifAckKeyUpStatus(const session_t* const curr_session)
 	
 	buildMsgHeader(&ostream, msg_length, NOTIF_ACK_KEY_UPDATE_STATUS, curr_session);
 
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 	
 	return(RETURN_SUCCESS);
 }
@@ -482,7 +482,7 @@ int32_t sendNotifSessionInit(const notif_session_init_t* const payload,
 	hostToNet8(&ostream, &payload->version, sizeof(uint8_t));
 	hostToNet8(&ostream, &payload->appTimeout, sizeof(uint8_t));
 
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 	
 	return(RETURN_SUCCESS);
 }
@@ -502,7 +502,7 @@ int32_t sendNotifEndUpdate(const session_t* const curr_session)
 	
 	buildMsgHeader(&ostream, msg_length, NOTIF_END_OF_UPDATE, curr_session);
 
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 	
 	return(RETURN_SUCCESS);
 }
@@ -534,7 +534,7 @@ int32_t sendNotifResponse(const notif_response_t* const payload,
 		hostToNet8(&ostream, payload->notificationList, sizeof(uint8_t)*payload->reqNum);
 	}
 
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 
 	return(RETURN_SUCCESS);
 }
@@ -559,7 +559,7 @@ int32_t sendNotifKeyOpReqRcvd(const notif_key_op_req_rcvd_t* const payload,
 	/* serialize payload */
 	hostToNet16(&ostream, payload->maxTime);
 
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 
 	return(RETURN_SUCCESS);
 }
@@ -583,7 +583,7 @@ int32_t sendNotifKeyDBChecksum(const notif_key_db_checksum_t* const payload,
 	/* serialize payload */
 	hostToNet8(&ostream, payload->checksum, (uint32_t)CHECKSUM_SIZE);
 
-	sendMsg(&ostream, curr_session->tls_des);
+	sendMsg(&ostream, curr_session->tls_id);
 	
 	return(RETURN_SUCCESS);
 }
@@ -842,14 +842,14 @@ static int32_t checkMsgHeader(session_t* const curr_session,
 
 /* ostream shall be already initialized */
 static int32_t sendMsg(write_stream_t* const ostream,
-					   const uint32_t tls_des)
+					   const uint32_t tls_id)
 {
 	
 	uint32_t bytes_sent = 0U;
 	
 	ASSERT(ostream != NULL, E_NULL_POINTER);
 	
-	sendTLS(&bytes_sent, ostream->buffer, ostream->curSize, tls_des);
+	sendTLS(&bytes_sent, ostream->buffer, ostream->curSize, tls_id);
 	
 	if( bytes_sent != ostream->curSize)
 	{
@@ -879,10 +879,10 @@ static int32_t sendMsg(write_stream_t* const ostream,
 
 /* istream shall be already initialized */
 static int32_t receiveMsg(read_stream_t* const istream,
-						  const uint32_t tls_des)
+						  const uint32_t tls_id)
 {
 
-	receiveTLS(&istream->validBytes, istream->buffer, (uint32_t)MSG_MAX_SIZE, tls_des);
+	receiveTLS(&istream->validBytes, istream->buffer, (uint32_t)MSG_MAX_SIZE, tls_id);
 
 #ifdef __DEBUG__
 	char dump_msg[2000];
@@ -928,7 +928,7 @@ int32_t initAppSession(const uint32_t peerETCSID,
 	sendNotifSessionInit(&msg_payload_sent, curr_session);
 
 	/* wait for session init message from the other peer */
-	receiveMsg(&input_msg, curr_session->tls_des);
+	receiveMsg(&input_msg, curr_session->tls_id);
 
 	convertMsgHeaderToHost(&msg_header, &input_msg);
 
@@ -967,55 +967,47 @@ int32_t endAppSession(session_t* const curr_session)
 	return(RETURN_SUCCESS);
 }
 
-int32_t startClientTLS(int32_t* const sock)
+int32_t startClientTLS(uint32_t* const tls_id)
 {
-	ASSERT(sock != NULL, E_NULL_POINTER);
+	ASSERT(tls_id != NULL, E_NULL_POINTER);
 
-	initClientTLS(sock);
+	initClientTLS(tls_id);
 
 	return(RETURN_SUCCESS);
 }
 
-int32_t connectToTLSServer(uint32_t* const tls_des,
-						   const int32_t sock,
+int32_t connectToTLSServer(const uint32_t const tls_id,
 						   const char* const r_ip,
 						   const uint16_t r_port)
 {
-	ASSERT(tls_des != NULL, E_NULL_POINTER);
 	ASSERT(r_ip != NULL, E_NULL_POINTER);
 
-	connectTLS(tls_des, sock, r_ip, r_port);
+	connectTLS(tls_id, r_ip, r_port);
 
 	return(RETURN_SUCCESS);
 }
 
-int32_t startServerTLS(int32_t* const listen_sock,
+int32_t startServerTLS(uint32_t* const tls_id,
 					   const uint16_t l_port)
 {
-	ASSERT(listen_sock != NULL, E_NULL_POINTER);
+	ASSERT(tls_id != NULL, E_NULL_POINTER);
 	
-	initServerTLS(listen_sock, l_port);
+	initServerTLS(tls_id, l_port);
 
 	return(RETURN_SUCCESS);
 }
 
-int32_t listenForTLSClient(uint32_t* const tls_des,
-						   int32_t* const client_sock,
-						   const int32_t listen_sock)
+int32_t listenForTLSClient(const uint32_t tls_id)
 {
-	ASSERT(tls_des != NULL, E_NULL_POINTER);
-	ASSERT(client_sock != NULL, E_NULL_POINTER);
-
-	acceptTLS(tls_des, client_sock, listen_sock);
+	acceptTLS(tls_id);
 
 	return(RETURN_SUCCESS);
 }
 
-int32_t closeTLSConnection(const uint32_t tls_des,
-						   const int32_t sock)
+int32_t closeTLSConnection(const uint32_t tls_id)
 {
 
-	closeTLS(tls_des, sock);
+	closeTLS(tls_id);
 
 	return(RETURN_SUCCESS);
 }
@@ -1028,7 +1020,7 @@ int32_t waitForNotifResponse(session_t* const curr_session,
 
 	initReadStream(&input_msg);
 		
-	receiveMsg(&input_msg, curr_session->tls_des);
+	receiveMsg(&input_msg, curr_session->tls_id);
 
 	convertMsgHeaderToHost(&header, &input_msg);
 
@@ -1060,7 +1052,7 @@ int32_t waitForChecksum(session_t* const curr_session,
 
 	initReadStream(&input_msg);
 	
-	receiveMsg(&input_msg, curr_session->tls_des);
+	receiveMsg(&input_msg, curr_session->tls_id);
 
 	convertMsgHeaderToHost(&header, &input_msg);
 
@@ -1093,7 +1085,7 @@ int32_t waitForRequest(uint32_t * const request_type,
 
 	initReadStream(&input_msg);
 	
-	receiveMsg(&input_msg, curr_session->tls_des);
+	receiveMsg(&input_msg, curr_session->tls_id);
 	
 	convertMsgHeaderToHost(&header, &input_msg);
 	
