@@ -13,8 +13,10 @@
 int main(int argc, char *argv[])
 {
 	session_t session;
-	uint32_t request_type = 0U;
-	uint32_t payload[5000];
+	request_t request;
+	bool_t stop = FALSE;
+	response_t response;
+	uint32_t i = 0U;
 
 	memset(&session, 0, sizeof(session_t));
 
@@ -24,52 +26,63 @@ int main(int argc, char *argv[])
 	{
 		listenForTLSClient(session.tlsID);
 
-		session.appTimeout = 0xFF;
-		session.peerEtcsIDExp = 0xAABBCCDD;
+		initAppSession(&session, 0xff, 0xAABBCCDD);
 
-		sendNotifSessionInit(&session);
-		
-		waitForSessionInit(payload, &session);
-		session.transNum++;
-		while(1)
+		debug_print("----------------------------------------------------------\n");
+		debug_print("----------------------------------------------------------\n");
+
+
+		while(stop == FALSE)
 		{
-			waitForRequestFromKMCToKMAC(payload, &request_type, &session);
+			waitForRequestFromKMCToKMAC(&request, &session);
 
-			debug_print("Request received : %d\n", request_type);
+			debug_print("Request received : %d\n", request.msgType);
 
-			if(request_type == NOTIF_END_OF_UPDATE)
+			switch(request.msgType)
 			{
+			case(NOTIF_END_OF_UPDATE):
+				stop = TRUE;
+				break;
+			case(CMD_REQUEST_KEY_DB_CHECKSUM):
+				/* evaluate crc */
+				for(i=0U; i<sizeof(response.checksum); i++)
+				{
+					response.checksum[i] = i;
+				}
+				sendNotifKeyDBChecksum(&response, &session);
+				break;
+			case(CMD_DELETE_ALL_KEYS):
+				response.notif.reason = RESP_OK;
+				response.notif.reqNum = 0;
+				sendNotifResponse(&response, &session);
+				break;
+			default:
+				/* some processing of request */
+				response.notif.reason = RESP_OK;
+				response.notif.reqNum = request.reqNum;
+
+				for(i = 0U; i < request.reqNum; i++)
+				{
+					response.notif.notificationList[i] = 0U;
+				}
+				
+				sendNotifResponse(&response, &session);
 				break;
 			}
-			else if(request_type == CMD_REQUEST_KEY_DB_CHECKSUM)
-			{
-				/* evaluate crc */
-				notif_key_db_checksum_t payload;
-				uint32_t i = 0U;
-				for(i=0U; i<sizeof(notif_key_db_checksum_t); i++)
-				{
-					payload.checksum[i] = i;
-				}
-				sendNotifKeyDBChecksum(&payload, &session);
-			}
-			else
-			{
-				/* some processing of request */
-				notif_response_t payload;
-				
-				payload.response = RESP_OK;
-				payload.reqNum = 0;
-				
-				sendNotifResponse(&payload, &session);
-
-			}
 			session.transNum++;
+			request.reqNum = 0;
+			debug_print("----------------------------------------------------------\n");
+			debug_print("----------------------------------------------------------\n");
+			
 		}
-
+		stop = FALSE;
 		closeTLSConnection(session.tlsID);
 	}
 	
 	return(0);
 }
+
+
+
 
 

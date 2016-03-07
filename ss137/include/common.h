@@ -38,7 +38,9 @@ typedef enum
 	E_NULL_POINTER     = 1,  /*     NULL pointer */
 	E_BUFFER_TOO_SHORT = 2,  /*     Trying to read or write past end of an array                              */
 	E_INVALID_PARAM    = 3,
-	E_TLS_ERROR        = 7
+	E_WRITE            = 4,
+	E_READ             = 5,
+	E_TLS_ERROR        = 6
 } ERROR_CODE;
 
 

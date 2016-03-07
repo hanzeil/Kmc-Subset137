@@ -10,10 +10,20 @@
 #include "msg_definitions.h"
 #include "ss137_lib.h"
 
+
+extern k_struct_t k_struct;
+
+extern k_ident_t k_ident;
+
+extern k_validity_t k_validity;
+
+extern k_entity_t k_entity;
+
 int main(int argc, char *argv[])
 {
 	session_t session;
-	uint8_t payload[5000];
+	request_t request;
+	response_t response;
 	uint32_t i = 0U;
 
 	memset(&session, 0, sizeof(session_t));
@@ -22,34 +32,57 @@ int main(int argc, char *argv[])
 
 	connectToTLSServer(session.tlsID, argv[1], atoi(argv[2]));
 
-	session.appTimeout = 0xFF;
-	session.peerEtcsIDExp = 0x11223344;
+	initAppSession(&session, 0xff, 0x11223344);
 
-	sendNotifSessionInit(&session);
-
-	waitForSessionInit(payload, &session);
-	session.transNum++;
-	
+	request.reqNum = 1;
+	debug_print("----------------------------------------------------------\n");
+	debug_print("----------------------------------------------------------\n");
 	/* first transaction */
 	for(i = 0U; i < atoi(argv[3]); i++)
 	{
-		sendCmdDeleteAllKeys(&session);
-		
-		waitForResponse(payload, &session);
-		session.transNum++;
+		memmove(request.kStructList, &k_struct, sizeof(k_struct_t));
+		performAddKeysOperation(&session, &response, &request);
 
-		sendCmdReqKeyDBChecksum(&session);
-			
-		waitForResponse(payload, &session);
-		session.transNum++;
+		debug_print("----------------------------------------------------------\n");
+		debug_print("----------------------------------------------------------\n");
+
+		memmove(request.kIdentList, &k_ident, sizeof(k_ident_t));
+		performDelKeysOperation(&session, &response, &request);
+
+		debug_print("----------------------------------------------------------\n");
+		debug_print("----------------------------------------------------------\n");
+
+		memmove(request.kValidityList, &k_validity, sizeof(k_validity_t));
+		performUpKeyValiditiesOperation(&session, &response, &request);
+
+		debug_print("----------------------------------------------------------\n");
+		debug_print("----------------------------------------------------------\n");
+
+		memmove(request.kEntityList, &k_entity, sizeof(k_entity_t));
+		performUpKeyEntitiesOperation(&session, &response, &request);
+
+		debug_print("----------------------------------------------------------\n");
+		debug_print("----------------------------------------------------------\n");
+
+		performDeleteAllKeysOperation(&session,	&response);
+
+		debug_print("----------------------------------------------------------\n");
+		debug_print("----------------------------------------------------------\n");
+
+		performReqDBChecksumOperation(&session,	&response);
+
+		debug_print("----------------------------------------------------------\n");
+		debug_print("----------------------------------------------------------\n");
+
 	}
 
-	sendNotifEndUpdate(&session);
+	endAppSession(&session);
 
 	closeTLSConnection(session.tlsID);
 
 	return(0);
 }
+
 
 	
 

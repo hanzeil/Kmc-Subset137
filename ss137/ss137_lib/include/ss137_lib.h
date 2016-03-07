@@ -38,6 +38,12 @@ typedef struct
 	uint32_t peerEtcsIDExp;
 } session_t;
 
+typedef enum
+{
+	OP_OK = 0,
+	OP_NOK = 1
+} OPERATION_STATUS;
+
 /*****************************************************************************
  * PUBLIC FUNCTION PROTOTYPES
  *****************************************************************************/
@@ -56,66 +62,55 @@ int32_t listenForTLSClient(const uint32_t tls_id);
 
 int32_t closeTLSConnection(const uint32_t tls_id);
 
-
-/* subset-137 libary functions */
-int32_t sendNotifSessionInit(const session_t* const curr_session);
-
-int32_t sendNotifEndUpdate(const session_t* const curr_session);
-
-
-/* command */
-int32_t sendCmdAddKeys(const cmd_add_keys_t* const payload,
-					   const session_t* const curr_session);
-
-int32_t sendCmdDeleteKeys(const cmd_del_keys_t* const payload,
-						  const session_t* const curr_session);
-
-int32_t sendCmdDeleteAllKeys(const session_t* const curr_session);
-
-int32_t sendCmdReqKeyDBChecksum(const session_t* const curr_session);
-
-int32_t sendCmdUpKeyValidities(const cmd_up_key_val_t* const payload,
-							   const session_t* const curr_session);
-
-int32_t sendCmdUpKeyEntities(const cmd_up_key_ent_t* const payload,
-							 const session_t* const curr_session);
-
-int32_t sendCmdReqKeyDBChecksum(const session_t* const curr_session);
-
-int32_t sendCmdReqKeyOperation(const cmd_req_key_op_t* const payload,
-							   const session_t* const curr_session);
-
-int32_t sendNotifKeyUpdateStatus(const notif_key_up_status_t* const payload,
-								 const session_t* const curr_session);
-
-int32_t sendNotifAckKeyUpStatus(const session_t* const curr_session);
-
-/* notification */
-int32_t sendNotifResponse(const notif_response_t* const payload,
-						  const session_t* const curr_session);
-
-int32_t sendNotifKeyDBChecksum(const notif_key_db_checksum_t* const payload,
-							   const session_t* const curr_session);
-
-int32_t sendNotifKeyOpReqRcvd(const notif_key_op_req_rcvd_t* const payload,
-							  const session_t* const curr_session);
-
-
-
-int32_t waitForSessionInit(void* const payload,
-						   session_t* const curr_session);
-
-int32_t waitForResponse(void* const payload,
-						session_t* const curr_session);
-
+/* receive */
+int32_t waitForResponse(response_t* const response,
+						session_t* const curr_session,
+						const MSG_TYPE exp_msg_type);
 
 int32_t waitForRequestFromKMCToKMC(void* const payload,
 								   uint32_t* const request_type,
 								   session_t* const curr_session);
 
-int32_t waitForRequestFromKMCToKMAC(void* const payload,
-									uint32_t* const request_type,
+int32_t waitForRequestFromKMCToKMAC(request_t* const request,
 									session_t* const curr_session);
+
+
+
+
+
+int32_t initAppSession(session_t* const curr_session,
+					   const uint8_t app_timeout,
+					   const uint32_t peer_etcs_id_exp);
+
+int32_t endAppSession(session_t* const curr_session);
+
+int32_t performAddKeysOperation(session_t* const curr_session,
+								response_t* const response,
+								const request_t* const request);
+
+int32_t performDelKeysOperation(session_t* const curr_session,
+								response_t* const response,
+								const request_t* const request);
+
+int32_t performUpKeyValiditiesOperation(session_t* const curr_session,
+										response_t* const response,
+										const request_t* const request);
+int32_t performUpKeyEntitiesOperation(session_t* const curr_session,
+									  response_t* const response,
+									  const request_t* const request);
+
+int32_t performDeleteAllKeysOperation(session_t* const curr_session,
+									  response_t* const response);
+
+int32_t performReqDBChecksumOperation(session_t* const curr_session,
+									  response_t* const response);
+
+int32_t sendNotifResponse(const response_t* const response,
+						  const session_t* const curr_session);
+
+int32_t sendNotifKeyDBChecksum(const response_t* const response,
+							   const session_t* const curr_session);
+
 
 
 #endif /* KMC_SS137_LIB_H_ */

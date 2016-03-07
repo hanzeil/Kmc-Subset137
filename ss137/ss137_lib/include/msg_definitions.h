@@ -71,11 +71,30 @@
 #define NOTIF_KEY_OP_REQ_RCVD_SIZE   (MSG_HEADER_SIZE+sizeof(uint16_t))
 #define NOTIF_KEY_DB_CHECKSUM_SIZE   (MSG_HEADER_SIZE+CHECKSUM_SIZE)
 
+#define APP_TIMEOUT_PEER_DEF         (0xFFU)
 
 
 /*****************************************************************************
  * TYPEDEFS
  *****************************************************************************/
+
+typedef enum
+{
+	CMD_ADD_KEYS                 = 0,
+	CMD_DELETE_KEYS              = 1,
+	CMD_DELETE_ALL_KEYS          = 2,
+	CMD_UPDATE_KEY_VALIDITIES    = 3,
+	CMD_UPDATE_KEY_ENTITIES      = 4,
+	CMD_REQUEST_KEY_OPERATION    = 5,
+	CMD_REQUEST_KEY_DB_CHECKSUM  = 6,
+	NOTIF_KEY_UPDATE_STATUS      = 7,
+	NOTIF_ACK_KEY_UPDATE_STATUS  = 8,
+	NOTIF_SESSION_INIT           = 9,
+	NOTIF_END_OF_UPDATE          = 10,
+	NOTIF_RESPONSE               = 11,
+	NOTIF_KEY_OPERATION_REQ_RCVD = 12,
+	NOTIF_KEY_DB_CHECKSUM        = 13
+} MSG_TYPE;
 
 typedef struct
 {
@@ -111,38 +130,13 @@ typedef struct
 
 typedef struct
 {
-	uint32_t  msgLength;
-	uint8_t   version;
-	uint32_t  recIDExp;
-	uint32_t  sendIDExp;
-	uint32_t  transNum;
-	uint16_t  seqNum;
-	uint8_t   msgType;
-} msg_header_t;
-
-typedef struct
-{
-	uint16_t   reqNum;
-	k_struct_t kStructList[MAX_REQ_ADD_KEYS];
-} cmd_add_keys_t;
-
-typedef struct
-{
-	uint16_t  reqNum;
-	k_ident_t kIdentList[MAX_REQ_DEL_KEYS];
-} cmd_del_keys_t;
-
-typedef struct
-{
+	MSG_TYPE     msgType;
 	uint16_t     reqNum;
+	k_struct_t   kStructList[MAX_REQ_ADD_KEYS];
+	k_ident_t    kIdentList[MAX_REQ_DEL_KEYS];
 	k_validity_t kValidityList[MAX_REQ_UPDATE];
-} cmd_up_key_val_t;
-
-typedef struct
-{
-	uint16_t     reqNum;
 	k_entity_t   kEntityList[MAX_REQ_UPDATE];
-} cmd_up_key_ent_t;
+} request_t;
 
 typedef struct
 {
@@ -154,23 +148,23 @@ typedef struct
 	char     text[MAX_TEXT_LENGTH];
 } cmd_req_key_op_t;
 
-
 typedef struct
 {
 	k_ident_t kIdent;
 	uint8_t   kStatus;
-} notif_key_up_status_t;
+} request_status_t;
 
 typedef struct
 {
 	uint8_t nVersion;
 	uint8_t version[NUM_VERSION];
 	uint8_t appTimeout;
-}notif_session_init_t;
+} notif_session_init_t;
+
 
 typedef struct
 {
-	uint8_t  response;
+	uint8_t  reason;
 	uint16_t reqNum;
 	uint8_t  notificationList[MAX_REQ_NOTIF];
 } notif_response_t;
@@ -185,23 +179,24 @@ typedef struct
 	uint8_t checksum[CHECKSUM_SIZE];
 } notif_key_db_checksum_t;
 
-typedef enum
+typedef struct
 {
-	CMD_ADD_KEYS                 = 0,
-	CMD_DELETE_KEYS              = 1,
-	CMD_DELETE_ALL_KEYS          = 2,
-	CMD_UPDATE_KEY_VALIDITIES    = 3,
-	CMD_UPDATE_KEY_ENTITIES      = 4,
-	CMD_REQUEST_KEY_OPERATION    = 5,
-	CMD_REQUEST_KEY_DB_CHECKSUM  = 6,
-	NOTIF_KEY_UPDATE_STATUS      = 7,
-	NOTIF_ACK_KEY_UPDATE_STATUS  = 8,
-	NOTIF_SESSION_INIT           = 9,
-	NOTIF_END_OF_UPDATE          = 10,
-	NOTIF_RESPONSE               = 11,
-	NOTIF_KEY_OPERATION_REQ_RCVD = 12,
-	NOTIF_KEY_DB_CHECKSUM        = 13
-} MSG_TYPE;
+	MSG_TYPE                msgType;
+	notif_response_t        notif;
+	uint8_t                 checksum[CHECKSUM_SIZE];
+	notif_key_op_req_rcvd_t keyOpRecvdPayload;
+} response_t;
+
+typedef struct
+{
+	uint32_t  msgLength;
+	uint8_t   version;
+	uint32_t  recIDExp;
+	uint32_t  sendIDExp;
+	uint32_t  transNum;
+	uint16_t  seqNum;
+	uint8_t   msgType;
+} msg_header_t;
 
 typedef enum
 {
