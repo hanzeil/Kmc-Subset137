@@ -98,6 +98,18 @@ typedef enum
 
 typedef struct
 {
+	uint32_t  msgLength;
+	uint8_t   version;
+	uint32_t  recIDExp;
+	uint32_t  sendIDExp;
+	uint32_t  transNum;
+	uint16_t  seqNum;
+	uint8_t   msgType;
+} msg_header_t;
+
+/* request struct */
+typedef struct
+{
 	uint32_t  genID;
 	uint32_t  serNum;
 } k_ident_t;
@@ -130,16 +142,6 @@ typedef struct
 
 typedef struct
 {
-	MSG_TYPE     msgType;
-	uint16_t     reqNum;
-	k_struct_t   kStructList[MAX_REQ_ADD_KEYS];
-	k_ident_t    kIdentList[MAX_REQ_DEL_KEYS];
-	k_validity_t kValidityList[MAX_REQ_UPDATE];
-	k_entity_t   kEntityList[MAX_REQ_UPDATE];
-} request_t;
-
-typedef struct
-{
 	uint32_t etcsID;
 	uint8_t  reason;
 	uint32_t startValidity;
@@ -152,7 +154,22 @@ typedef struct
 {
 	k_ident_t kIdent;
 	uint8_t   kStatus;
-} request_status_t;
+} key_update_status_t;
+
+typedef struct
+{
+	MSG_TYPE            msgType;
+	uint16_t            reqNum;
+	k_struct_t          kStructList[MAX_REQ_ADD_KEYS];
+	k_ident_t           kIdentList[MAX_REQ_DEL_KEYS];
+	k_validity_t        kValidityList[MAX_REQ_UPDATE];
+	k_entity_t          kEntityList[MAX_REQ_UPDATE];
+	cmd_req_key_op_t    reqKeyOpPayload;
+	key_update_status_t keyUpStatusPayload;
+} request_t;
+
+
+/* notification struct */
 
 typedef struct
 {
@@ -182,21 +199,10 @@ typedef struct
 typedef struct
 {
 	MSG_TYPE                msgType;
-	notif_response_t        notif;
-	uint8_t                 checksum[CHECKSUM_SIZE];
+	notif_response_t        notifPayload;
+	notif_key_db_checksum_t dbChecksumPayload;
 	notif_key_op_req_rcvd_t keyOpRecvdPayload;
 } response_t;
-
-typedef struct
-{
-	uint32_t  msgLength;
-	uint8_t   version;
-	uint32_t  recIDExp;
-	uint32_t  sendIDExp;
-	uint32_t  transNum;
-	uint16_t  seqNum;
-	uint8_t   msgType;
-} msg_header_t;
 
 typedef enum
 {

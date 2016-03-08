@@ -15,10 +15,10 @@ int main(int argc, char* argv[])
 
 	short int       s_port = atoi(argv[1]);
 
-	initServerTLS(&tls_id, s_port);
+	initServerTLS(s_port);
 
 	printf("Start listening on incoming connection\n");
-	acceptTLS(tls_id);
+	acceptTLS(&tls_id);
 
 	/* ----------------------------------------------- */
 	/* Wait for incoming connection. */
@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 		printf ("Received %d chars:'%s'\n", bytes_received, buf);
 		
 		/* Send data to the TLS client */
-		sendTLS(&bytes_send, (uint8_t*)"This message is from the TLS server", strlen("This message is from the TLS server"), tls_id);
+		/* sendTLS(&bytes_send, (uint8_t*)"This message is from the TLS server", strlen("This message is from the TLS server"), tls_id); */
 		
 	}
 

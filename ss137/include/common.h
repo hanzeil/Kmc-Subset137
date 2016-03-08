@@ -35,12 +35,14 @@ typedef int32_t bool_t;
 typedef enum
 {
 	RETURN_SUCCESS     = 0,
-	E_NULL_POINTER     = 1,  /*     NULL pointer */
-	E_BUFFER_TOO_SHORT = 2,  /*     Trying to read or write past end of an array                              */
-	E_INVALID_PARAM    = 3,
-	E_WRITE            = 4,
-	E_READ             = 5,
-	E_TLS_ERROR        = 6
+	RETURN_ERROR       = 1,
+	E_NULL_POINTER     = 2,  /*     NULL pointer */
+	E_BUFFER_TOO_SHORT = 3,  /*     Trying to read or write past end of an array                              */
+	E_INVALID_PARAM    = 4,
+	E_WRITE            = 5,
+	E_READ             = 6,
+	E_TLS_ERROR        = 7,
+	E_CONN_TIMEOUT     = 8
 } ERROR_CODE;
 
 

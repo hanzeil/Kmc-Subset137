@@ -20,12 +20,13 @@ int main(int argc, char *argv[])
 
 	memset(&session, 0, sizeof(session_t));
 
-	startServerTLS(&session.tlsID, atoi(argv[1]));
+	startServerTLS(atoi(argv[1]));
 
 	while(1)
 	{
-		listenForTLSClient(session.tlsID);
+		listenForTLSClient(&session.tlsID);
 
+		sleep(5U);
 		initAppSession(&session, 0xff, 0xAABBCCDD);
 
 		debug_print("----------------------------------------------------------\n");
@@ -45,25 +46,25 @@ int main(int argc, char *argv[])
 				break;
 			case(CMD_REQUEST_KEY_DB_CHECKSUM):
 				/* evaluate crc */
-				for(i=0U; i<sizeof(response.checksum); i++)
+				for(i=0U; i<sizeof(response.dbChecksumPayload.checksum); i++)
 				{
-					response.checksum[i] = i;
+					response.dbChecksumPayload.checksum[i] = i;
 				}
 				sendNotifKeyDBChecksum(&response, &session);
 				break;
 			case(CMD_DELETE_ALL_KEYS):
-				response.notif.reason = RESP_OK;
-				response.notif.reqNum = 0;
+				response.notifPayload.reason = RESP_OK;
+				response.notifPayload.reqNum = 0;
 				sendNotifResponse(&response, &session);
 				break;
 			default:
 				/* some processing of request */
-				response.notif.reason = RESP_OK;
-				response.notif.reqNum = request.reqNum;
+				response.notifPayload.reason = RESP_OK;
+				response.notifPayload.reqNum = request.reqNum;
 
 				for(i = 0U; i < request.reqNum; i++)
 				{
-					response.notif.notificationList[i] = 0U;
+					response.notifPayload.notificationList[i] = 0U;
 				}
 				
 				sendNotifResponse(&response, &session);

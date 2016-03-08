@@ -25,8 +25,9 @@
 
 #include <stdint.h>
 #include <unistd.h>
-
+#include <poll.h>
 #include <arpa/inet.h>
+
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -54,7 +55,7 @@
 #define VERIFY_DEPTH         (1U)
 /**@}*/
 
-
+#define SEC_TO_MSEC(x) (1000U*x)
 /*****************************************************************************
  * TYPEDEFS
  *****************************************************************************/
@@ -266,6 +267,12 @@ tls_error_code_t initClientTLS(tls_des_t* const tls_id)
 		return(TLS_ERROR);
 	}
 
+	  struct timeval timeout;
+	  timeout.tv_sec  = 15;
+	  timeout.tv_usec = 0;
+
+	setsockopt (tmp_sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
+
 	tls_descriptors[*tls_id].socket = tmp_sock;
 
 	return(TLS_SUCCESS);
@@ -282,7 +289,7 @@ tls_error_code_t connectTLS(const tls_des_t tls_id, const char* const r_ip, cons
 	memset (&server_addr, '\0', sizeof(server_addr));
 	server_addr.sin_family      = AF_INET;
  	server_addr.sin_port        = htons(r_port);       /* Server Port number */
-	server_addr.sin_addr.s_addr = inet_addr(r_ip); /* Server IP */
+	server_addr.sin_addr.s_addr = inet_addr(r_ip);     /* Server IP */
 
 	/* Establish a TCP/IP connection to the SSL client */
 	if(connect(tls_descriptors[tls_id].socket, (struct sockaddr*) &server_addr, sizeof(server_addr)) == -1)
@@ -329,12 +336,10 @@ tls_error_code_t connectTLS(const tls_des_t tls_id, const char* const r_ip, cons
 }
 
 /* server */
-tls_error_code_t initServerTLS(tls_des_t* const tls_id, const uint16_t l_port)
+tls_error_code_t initServerTLS(const uint16_t l_port)
 {
 	struct sockaddr_in sa_serv;
 
-	ASSERT(tls_id != NULL, E_NULL_POINTER);
-		
 	if(initTLS() != TLS_SUCCESS)
 	{
 		err_print("Error during initTLS()\n");
@@ -365,12 +370,10 @@ tls_error_code_t initServerTLS(tls_des_t* const tls_id, const uint16_t l_port)
 		return(TLS_ERROR);
 	}
 
-	findTLSDes(tls_id);
-
 	return(TLS_SUCCESS);
 }
 
-tls_error_code_t acceptTLS(const tls_des_t tls_id)
+tls_error_code_t acceptTLS(tls_des_t* const tls_id)
 {
 	struct sockaddr_in sa_cli;
 	int32_t  client_len = 0;
@@ -378,7 +381,9 @@ tls_error_code_t acceptTLS(const tls_des_t tls_id)
 		
 	SSL *ssl = NULL;
 
-	ASSERT(tls_id < MAX_TLS_DES, E_INVALID_PARAM);
+	ASSERT(tls_id != NULL, E_NULL_POINTER);
+
+	findTLSDes(tls_id);
 
 	client_len = sizeof(sa_cli);
 
@@ -427,8 +432,8 @@ tls_error_code_t acceptTLS(const tls_des_t tls_id)
 
 	getPeerCertificate(ssl);
 
-	tls_descriptors[tls_id].ssl_ptr = ssl;
-	tls_descriptors[tls_id].socket = client_sock;
+	tls_descriptors[*tls_id].ssl_ptr = ssl;
+	tls_descriptors[*tls_id].socket = client_sock;
 
 	return(TLS_SUCCESS);
 }
@@ -456,9 +461,9 @@ tls_error_code_t closeTLS(const tls_des_t tls_id)
 }
 
 tls_error_code_t sendTLS(uint32_t* const bytes_sent,
-				const uint8_t* const buf,
-				const uint32_t buf_len,
-				const tls_des_t tls_id)
+						 const uint8_t* const buf,
+						 const uint32_t buf_len,
+						 const tls_des_t tls_id)
 {
 	ASSERT(tls_id < MAX_TLS_DES, E_INVALID_PARAM);
 	ASSERT(bytes_sent != NULL, E_NULL_POINTER);
@@ -476,24 +481,56 @@ tls_error_code_t sendTLS(uint32_t* const bytes_sent,
 }
 
 tls_error_code_t receiveTLS(uint32_t* const bytes_received,
-				   uint8_t* const buf,
-				   const uint32_t buf_len,
-				   const tls_des_t tls_id)
+							uint8_t* const buf,
+							const uint32_t buf_len,
+							const uint8_t timeout,
+							const tls_des_t tls_id)
 {
+	struct pollfd handles[1];
+    const nfds_t n_handles = 1;
+	int32_t n_active = -1;
+
 	ASSERT(tls_id < MAX_TLS_DES, E_INVALID_PARAM);
 	ASSERT(bytes_received != NULL, E_NULL_POINTER);
 	ASSERT(buf != NULL, E_NULL_POINTER);
 
-	*bytes_received = SSL_read(tls_descriptors[tls_id].ssl_ptr, buf, buf_len);
+    handles[0].fd = tls_descriptors[tls_id].socket;
+    handles[0].events = POLLIN;
 
-	 if(*bytes_received <= 0)
-	 {
-		 if(SSL_get_shutdown(tls_descriptors[tls_id].ssl_ptr) == SSL_RECEIVED_SHUTDOWN)
-		 {
-			 warning_print("TLS shutdown received from the other peer\n");
-			 return(TLS_ERROR);
-		 }
-	 }
+	n_active = poll(handles, n_handles, SEC_TO_MSEC(timeout));
+
+	if(n_active < 0)
+	{
+		err_print("Error in poll()\n");
+		return(TLS_ERROR);
+	}
+	else if( n_active == 0)
+	{
+		warning_print("Timeout expired\n");
+		return(TLS_TIMEOUT);
+	}
+	else
+	{
+		if ( ( handles[0].revents & POLLERR & POLLHUP & POLLNVAL ) != 0 )
+		{
+			err_print("Error in poll()\n");
+			return(TLS_ERROR);
+		}
+		else if (handles[0].revents & POLLIN)
+		{
+			*bytes_received = SSL_read(tls_descriptors[tls_id].ssl_ptr, buf, buf_len);
+			
+			if(*bytes_received <= 0)
+			{
+				if(SSL_get_shutdown(tls_descriptors[tls_id].ssl_ptr) == SSL_RECEIVED_SHUTDOWN)
+				{
+					warning_print("TLS shutdown received from the other peer\n");
+					return(TLS_ERROR);
+				}
+			}
+		}
+	}
+	
 	return(TLS_SUCCESS);
 }
 
