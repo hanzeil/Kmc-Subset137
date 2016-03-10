@@ -59,89 +59,90 @@ static const uint8_t supportedVersion[NUM_VERSION] = {2U};
  *****************************************************************************/
 
 /*init and close app level connection */
-static int32_t sendNotifSessionInit(session_t* const curr_session);
+static error_code_t sendNotifSessionInit(session_t* const curr_session);
 
-static int32_t sendNotifSessionEnd(session_t* const curr_session);
+static error_code_t sendNotifSessionEnd(session_t* const curr_session);
 
 /* command */
-static int32_t sendCmdAddKeys(const request_t* const request,
-					   	   	   const session_t* const curr_session);
+static error_code_t sendCmdAddKeys(const request_t* const request,
+										   const session_t* const curr_session);
 
-static int32_t sendCmdDeleteKeys(const request_t* const request,
-						  	  	  const session_t* const curr_session);
+static error_code_t sendCmdDeleteKeys(const request_t* const request,
+											  const session_t* const curr_session);
 
-static int32_t sendCmdUpKeyValidities(const request_t* const request,
-										const session_t* const curr_session);
+static error_code_t sendCmdUpKeyValidities(const request_t* const request,
+												   const session_t* const curr_session);
 
-static int32_t sendCmdUpKeyEntities(const request_t* const payload,
-									const session_t* const curr_session);
+static error_code_t sendCmdUpKeyEntities(const request_t* const payload,
+												 const session_t* const curr_session);
 
-static int32_t sendCmdReqKeyDBChecksum(const session_t* const curr_session);
+static error_code_t sendCmdReqKeyDBChecksum(const session_t* const curr_session);
 
-static int32_t sendCmdDeleteAllKeys(const session_t* const curr_session);
+static error_code_t sendCmdDeleteAllKeys(const session_t* const curr_session);
 
-static int32_t sendCmdReqKeyDBChecksum(const session_t* const curr_session);
+static error_code_t sendCmdReqKeyDBChecksum(const session_t* const curr_session);
 
-static int32_t sendCmdReqKeyOperation(const request_t* const request,
-									  const session_t* const curr_session);
+static error_code_t sendCmdReqKeyOperation(const request_t* const request,
+												   const session_t* const curr_session);
 
-static int32_t sendNotifKeyUpdateStatus(const request_t* const request,
-										const session_t* const curr_session);
+static error_code_t sendNotifKeyUpdateStatus(const request_t* const request,
+													 const session_t* const curr_session);
 
-static int32_t buildMsgHeader(write_stream_t* const ostream,
-							  const uint32_t msg_length,
-							  const uint32_t msg_type,
-							  const uint32_t peer_etcs_id_exp,
-							  const uint32_t trans_num);
+static error_code_t buildMsgHeader(write_stream_t* const ostream,
+										   const uint32_t msg_length,
+										   const uint32_t msg_type,
+										   const uint32_t peer_etcs_id_exp,
+										   const uint32_t trans_num);
 
 /*convert request*/
-static int32_t convertMsgHeaderToHost(msg_header_t* const header,
-									  read_stream_t* const istream);
+static error_code_t convertMsgHeaderToHost(msg_header_t* const header,
+												   read_stream_t* const istream);
 
-static int32_t convertCmdAddKeysToHost(request_t* const request,
-									   read_stream_t* const istream);
+static error_code_t convertCmdAddKeysToHost(request_t* const request,
+													read_stream_t* const istream);
 
-static int32_t convertCmdDeleteKeysToHost(request_t* const request,
-										  read_stream_t* const istream);
+static error_code_t convertCmdDeleteKeysToHost(request_t* const request,
+													   read_stream_t* const istream);
 	
-static int32_t convertCmdUpKeyValiditiesToHost(request_t* const request,
-											   read_stream_t* const istream);
+static error_code_t convertCmdUpKeyValiditiesToHost(request_t* const request,
+															read_stream_t* const istream);
 
-static int32_t convertCmdUpKeyEntitiesToHost(request_t* const request,
-											 read_stream_t* const istream);
+static error_code_t convertCmdUpKeyEntitiesToHost(request_t* const request,
+														  read_stream_t* const istream);
 
-static int32_t convertNotifKeyOpReqRcvdToHost(response_t* const response,
-											  read_stream_t* const istream);
+static error_code_t convertNotifKeyOpReqRcvdToHost(response_t* const response,
+														   read_stream_t* const istream);
 
-static int32_t convertNotifKeyUpdateStatusToHost(request_t* const request,
-												 read_stream_t* const istream);
+static error_code_t convertNotifKeyUpdateStatusToHost(request_t* const request,
+															  read_stream_t* const istream);
 
-static int32_t convertCmdReqKeyOperationToHost(request_t* const request,
-											   read_stream_t* const istream);
+static error_code_t convertCmdReqKeyOperationToHost(request_t* const request,
+															read_stream_t* const istream);
 
 /*convert response */
-static int32_t convertNotifSessionInitToHost(notif_session_init_t* const request,
-											 read_stream_t* const istream);
+static error_code_t convertNotifSessionInitToHost(notif_session_init_t* const request,
+														  read_stream_t* const istream);
 
-static int32_t convertNotifResponseToHost(response_t* const response,
-										  read_stream_t* const istream);
+static error_code_t convertNotifResponseToHost(response_t* const response,
+													   read_stream_t* const istream);
 
-static int32_t convertNotifKeyDBChecksumToHost(response_t* const response,
-											   read_stream_t* const istream);
+static error_code_t convertNotifKeyDBChecksumToHost(response_t* const response,
+															read_stream_t* const istream);
 	
-static int32_t convertMsgHeaderToHost(msg_header_t* const header,
-									  read_stream_t* const istream);
+static error_code_t convertMsgHeaderToHost(msg_header_t* const header,
+												   read_stream_t* const istream);
 
-static int32_t checkMsgHeader(session_t* const curr_session,
-							  const msg_header_t* const header,
-							  const uint32_t exp_msg_length);
+static error_code_t checkMsgHeader(session_t* const curr_session,
+								   response_reason_t* const result,
+								   const msg_header_t* const header,
+								   const uint32_t exp_msg_length);
 
-static int32_t sendMsg(write_stream_t* const ostream,
-					   const uint32_t tls_id);
+static error_code_t sendMsg(write_stream_t* const ostream,
+									const uint32_t tls_id);
 
-static int32_t receiveMsg(read_stream_t* const istream,
-						  const uint8_t timeout,
-						  const uint32_t tls_id);
+static error_code_t receiveMsg(read_stream_t* const istream,
+									   const uint8_t timeout,
+									   const uint32_t tls_id);
 
 static void getMyEtcsIDExp(uint32_t* const my_etcs_id_exp);
 
@@ -161,11 +162,11 @@ static void getMyEtcsIDExp(uint32_t* const my_etcs_id_exp)
 	return;
 }
 
-static int32_t buildMsgHeader(write_stream_t* const ostream,
-							  const uint32_t msg_length,
-							  const uint32_t msg_type,
-							  const uint32_t peer_etcs_id_exp,
-							  const uint32_t trans_num)
+static error_code_t buildMsgHeader(write_stream_t* const ostream,
+										   const uint32_t msg_length,
+										   const uint32_t msg_type,
+										   const uint32_t peer_etcs_id_exp,
+										   const uint32_t trans_num)
 {
 
 	msg_header_t header;
@@ -193,11 +194,11 @@ static int32_t buildMsgHeader(write_stream_t* const ostream,
 	hostToNet16(ostream, header.seqNum);
 	hostToNet8(ostream, &header.msgType, sizeof(uint8_t));
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-static int32_t convertMsgHeaderToHost(msg_header_t* const header,
-									  read_stream_t* const istream)
+static error_code_t convertMsgHeaderToHost(msg_header_t* const header,
+										   read_stream_t* const istream)
 {
 	ASSERT((istream != NULL) && (header != NULL), E_NULL_POINTER);
 
@@ -209,12 +210,12 @@ static int32_t convertMsgHeaderToHost(msg_header_t* const header,
 	netToHost16(&header->seqNum, istream);
 	netToHost8(&header->msgType, (uint32_t)sizeof(uint8_t), istream);
 
-    return(RETURN_SUCCESS);
+    return(SUCCESS);
 }
 
 
-static int32_t convertCmdAddKeysToHost(request_t* const request,
-									   read_stream_t* const istream)
+static error_code_t convertCmdAddKeysToHost(request_t* const request,
+													read_stream_t* const istream)
 {
 	uint32_t i = 0U;
 	uint32_t j = 0U;
@@ -240,11 +241,11 @@ static int32_t convertCmdAddKeysToHost(request_t* const request,
 		netToHost32(&request->kStructList[i].endValidity, istream);
 	}
 
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-static int32_t convertCmdDeleteKeysToHost(request_t* const request,
-										  read_stream_t* const istream)
+static error_code_t convertCmdDeleteKeysToHost(request_t* const request,
+													   read_stream_t* const istream)
 {
 	uint32_t i = 0U;
 
@@ -258,11 +259,11 @@ static int32_t convertCmdDeleteKeysToHost(request_t* const request,
 		netToHost32(&request->kIdentList[i].genID, istream);
 	}
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-static int32_t convertCmdUpKeyValiditiesToHost(request_t* const request,
-											   read_stream_t* const istream)
+static error_code_t convertCmdUpKeyValiditiesToHost(request_t* const request,
+															read_stream_t* const istream)
 {
 	uint32_t i = 0U;
 	
@@ -278,12 +279,12 @@ static int32_t convertCmdUpKeyValiditiesToHost(request_t* const request,
 		netToHost32(&request->kValidityList[i].endValidity, istream);
 	}
 		
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
 
-static int32_t convertCmdUpKeyEntitiesToHost(request_t* const request,
-											 read_stream_t* const istream)
+static error_code_t convertCmdUpKeyEntitiesToHost(request_t* const request,
+														  read_stream_t* const istream)
 {
 	uint32_t i = 0U;
 	uint32_t j = 0U;
@@ -304,12 +305,12 @@ static int32_t convertCmdUpKeyEntitiesToHost(request_t* const request,
 		}
 	}
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
 
-static int32_t convertCmdReqKeyOperationToHost(request_t* const request,
-											   read_stream_t* const istream)
+static error_code_t convertCmdReqKeyOperationToHost(request_t* const request,
+															read_stream_t* const istream)
 {
 	ASSERT((istream != NULL) && (request != NULL), E_NULL_POINTER);
 
@@ -324,14 +325,14 @@ static int32_t convertCmdReqKeyOperationToHost(request_t* const request,
 	
 	netToHost16(&request->reqKeyOpPayload.textLength, istream);
 	netToHost8((uint8_t*)request->reqKeyOpPayload.text,
-			request->reqKeyOpPayload.textLength, istream);
+			   request->reqKeyOpPayload.textLength, istream);
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
 
-static int32_t convertNotifKeyUpdateStatusToHost(request_t* const request,
-												 read_stream_t* const istream)
+static error_code_t convertNotifKeyUpdateStatusToHost(request_t* const request,
+															  read_stream_t* const istream)
 {
 	ASSERT((istream != NULL) && (request != NULL), E_NULL_POINTER);
 
@@ -339,23 +340,23 @@ static int32_t convertNotifKeyUpdateStatusToHost(request_t* const request,
 	netToHost32(&request->keyUpStatusPayload.kIdent.serNum, istream);
 	netToHost8(&request->keyUpStatusPayload.kStatus, sizeof(uint8_t), istream);
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
 
-static int32_t convertNotifKeyOpReqRcvdToHost(response_t* const response,
-											  read_stream_t* const istream)
+static error_code_t convertNotifKeyOpReqRcvdToHost(response_t* const response,
+														   read_stream_t* const istream)
 {
 	ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
 
 	netToHost16(&response->keyOpRecvdPayload.maxTime, istream);
 
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
 
-static int32_t convertNotifSessionInitToHost(notif_session_init_t* const response,
-											 read_stream_t* const istream)
+static error_code_t convertNotifSessionInitToHost(notif_session_init_t* const response,
+														  read_stream_t* const istream)
 {
 	ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
 
@@ -363,76 +364,77 @@ static int32_t convertNotifSessionInitToHost(notif_session_init_t* const respons
 	netToHost8(response->version, sizeof(uint8_t)*NUM_VERSION, istream);
 	netToHost8(&response->appTimeout, sizeof(uint8_t), istream);
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-static int32_t convertNotifResponseToHost(response_t* const response,
-										  read_stream_t* const istream)
+static error_code_t convertNotifResponseToHost(response_t* const response,
+													   read_stream_t* const istream)
 {
 	ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
 
 	netToHost8(&response->notifPayload.reason, sizeof(uint8_t), istream);
 	netToHost16(&response->notifPayload.reqNum, istream);
 	netToHost8(response->notifPayload.notificationList,
-			sizeof(uint8_t)*response->notifPayload.reqNum, istream);
+			   sizeof(uint8_t)*response->notifPayload.reqNum, istream);
 
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-static int32_t convertNotifKeyDBChecksumToHost(response_t* const response,
-											   read_stream_t* const istream)
+static error_code_t convertNotifKeyDBChecksumToHost(response_t* const response,
+															read_stream_t* const istream)
 {
 	ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
 
 	netToHost8(response->dbChecksumPayload.checksum, (uint32_t)CHECKSUM_SIZE, istream);
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-static int32_t checkMsgHeader(session_t* const curr_session,
-							  const msg_header_t* const header,
-							  const uint32_t exp_msg_length)
+static error_code_t checkMsgHeader(session_t* const curr_session,
+								   response_reason_t* const result,
+								   const msg_header_t* const header,
+								   const uint32_t exp_msg_length)
 {
-	int32_t ret_val = 0U;
 	uint32_t my_etcs_id_exp = 0U;
 
 	ASSERT(header != NULL, E_NULL_POINTER);
 	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(result, E_NULL_POINTER);
 
 	getMyEtcsIDExp(&my_etcs_id_exp);
 	
 	if( header->sendIDExp != curr_session->peerEtcsIDExp )
 	{
 		/* wrong sender id */
-		ret_val = RESP_WRONG_SENDER_ID;
+		*result = RESP_WRONG_SENDER_ID;
 		warning_print("Invalid sender ID:  received 0x%08x exp 0x%08x\n",
 					  header->sendIDExp, curr_session->peerEtcsIDExp);
 	}
 	else if( header->recIDExp != my_etcs_id_exp )
 	{
 		/* wrong receiver id */
-		ret_val = RESP_WRONG_REC_ID;
+		*result = RESP_WRONG_REC_ID;
 		warning_print("Invalid rec ID:  received 0x%08x exp 0x%08x\n",
 					  header->recIDExp, my_etcs_id_exp);
 	}
 	else if( header->msgLength !=  exp_msg_length )
 	{
 		/* wrong msg length */
-		ret_val = RESP_WRONG_LENGTH;
+		*result = RESP_WRONG_LENGTH;
 		warning_print("Invalid msg length:  received 0x%08x exp 0x%08x\n",
 					  header->msgLength, exp_msg_length);
 	}
 	else if( header->msgType > NOTIF_KEY_DB_CHECKSUM )
 	{
 		/* msg type not supported */
-		ret_val = RESP_NOT_SUPPORTED;
+		*result = RESP_NOT_SUPPORTED;
 		warning_print("Invalid msg type:  received 0x%02x\n",
 					  header->msgType);
 	}
 	else if( header->version != supportedVersion[0] )
 	{
 		/* wrong version */
-		ret_val = RESP_WRONG_VERSION;
+		*result = RESP_WRONG_VERSION;
 		warning_print("Invalid interface version:  received 0x%02x exp 0x%02x\n",
 					  header->version, supportedVersion[0]);
 	}
@@ -442,7 +444,7 @@ static int32_t checkMsgHeader(session_t* const curr_session,
 			 (header->msgType != NOTIF_SESSION_INIT))
 	{
 		/* wrong sequence number */
-		ret_val = RESP_WRONG_SEQ_NUM;
+		*result = RESP_WRONG_SEQ_NUM;
 		warning_print("Invalid seq num:  received 0x%04x exp 0x%04x\n",
 					  curr_session->transNum, header->transNum);
 	}
@@ -452,40 +454,40 @@ static int32_t checkMsgHeader(session_t* const curr_session,
 			  (header->msgType == NOTIF_END_OF_UPDATE)))
 	{
 		/* wrong transaction number */
-		ret_val = RESP_WRONG_TRANS_NUM;
+		*result = RESP_WRONG_TRANS_NUM;
 		warning_print("Invalid trans number:  received 0x%08x exp 0x%08x\n",
 					  curr_session->transNum, header->transNum);
 	}
 	else
 	{
 		/* valid header */
-		ret_val = RESP_OK;
+		*result = RESP_OK;
 	}
 
 	/* set new peer sequence number */
 	curr_session->peerSeqNum = header->seqNum;
 	
-	return(ret_val);
+	return(SUCCESS);
 }
 
 /* ostream shall be already initialized */
-static int32_t sendMsg(write_stream_t* const ostream,
-					   const uint32_t tls_id)
+static error_code_t sendMsg(write_stream_t* const ostream,
+									const uint32_t tls_id)
 {
 	
 	uint32_t bytes_sent = 0U;
 	
 	ASSERT(ostream != NULL, E_NULL_POINTER);
 	
-	if(sendTLS(&bytes_sent, ostream->buffer, ostream->curSize, tls_id) != TLS_SUCCESS)
+	if(sendTLS(&bytes_sent, ostream->buffer, ostream->curSize, tls_id) != SUCCESS)
 	{
-		return(E_TLS_ERROR);
+		return(ERROR);
 	}
 	
 	if( bytes_sent != ostream->curSize)
 	{
 		err_print("Cannot complete send operation of msg (bytes sent %d, expectd %d)\n", bytes_sent, ostream->curSize);
-		return(E_WRITE);
+		return(ERROR);
 	}
 	
 #ifdef __DEBUG__
@@ -505,12 +507,12 @@ static int32_t sendMsg(write_stream_t* const ostream,
 
 	mySeqNum++;
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-static int32_t evaluateRemainingTime(uint8_t *const remaining_time,
-									 const struct timeval start_time,
-									 const uint8_t exp_timeout)
+static error_code_t evaluateRemainingTime(uint8_t *const remaining_time,
+												  const struct timeval start_time,
+												  const uint8_t exp_timeout)
 {
 	struct timeval curr_time;
 	uint64_t elapsed_time;
@@ -520,7 +522,7 @@ static int32_t evaluateRemainingTime(uint8_t *const remaining_time,
 
 	if(curr_time.tv_sec < start_time.tv_sec)
 	{
-		return(RETURN_ERROR);
+		return(ERROR);
 	}
 	else
 	{
@@ -530,7 +532,7 @@ static int32_t evaluateRemainingTime(uint8_t *const remaining_time,
 		tmp_remaining_time = exp_timeout - elapsed_time;
 		if(tmp_remaining_time > 0xFFU)
 		{
-			return(RETURN_ERROR);
+			return(ERROR);
 		}
 		else
 		{
@@ -538,32 +540,25 @@ static int32_t evaluateRemainingTime(uint8_t *const remaining_time,
 		}
 	}
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
 /* istream shall be already initialized */
-static int32_t receiveMsg(read_stream_t* const istream,
-						  const uint8_t timeout,
-						  const uint32_t tls_id)
+static error_code_t receiveMsg(read_stream_t* const istream,
+									   const uint8_t timeout,
+									   const uint32_t tls_id)
 {
-	tls_error_code_t ret_val;
 
 	ASSERT(istream != NULL, E_NULL_POINTER);
 
 	debug_print("Waiting time = %d\n", timeout);
 	
-	ret_val = receiveTLS(&istream->validBytes, istream->buffer,
-						 (uint32_t)MSG_MAX_SIZE, timeout, tls_id);
-
-	switch(ret_val)
+	if(receiveTLS(&istream->validBytes, istream->buffer,
+				  (uint32_t)MSG_MAX_SIZE, timeout, tls_id) != SUCCESS)
 	{
-	case(TLS_ERROR):
-		return(E_TLS_ERROR);
-	case(TLS_TIMEOUT):
-		warning_print("Timeout expired\n");
-		return(E_CONN_TIMEOUT);
-	default:
-		break;
+		return(ERROR);
+	}
+
 #ifdef __DEBUG__
 	char dump_msg[2000];
 	char tmp_str[5];
@@ -578,12 +573,11 @@ static int32_t receiveMsg(read_stream_t* const istream,
 	}
 	debug_print("%s\n", dump_msg);
 #endif
-	}
 
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-static int32_t sendNotifSessionInit(session_t* const curr_session)
+static error_code_t sendNotifSessionInit(session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	uint8_t tmp_num_version = NUM_VERSION;
@@ -606,16 +600,19 @@ static int32_t sendNotifSessionInit(session_t* const curr_session)
 	hostToNet8(&ostream, supportedVersion, NUM_VERSION*sizeof(uint8_t));
 	hostToNet8(&ostream, &curr_session->appTimeout, sizeof(uint8_t));
 
-	sendMsg(&ostream, curr_session->tlsID);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-static int32_t sendNotifSessionEnd(session_t* const curr_session)
+static error_code_t sendNotifSessionEnd(session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
-
+	
 	ASSERT(curr_session != NULL, E_NULL_POINTER);
 
 	/* the transaction number for end
@@ -631,81 +628,81 @@ static int32_t sendNotifSessionEnd(session_t* const curr_session)
 	buildMsgHeader(&ostream, msg_length, NOTIF_END_OF_UPDATE,
 				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
-	sendMsg(&ostream, curr_session->tlsID);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
 
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-static int32_t waitForSessionInit(notif_session_init_t* const payload,
-								  session_t* const curr_session)
+static error_code_t waitForSessionInit(notif_session_init_t* const payload,
+									   response_reason_t* const result,
+									   session_t* const curr_session)
 {
 	read_stream_t input_msg;
 	msg_header_t header;
 	uint8_t remaining_time = 0U;
-	int32_t ret_val = -1;
+	error_code_t error_code = ERROR;
 
 	ASSERT(payload != NULL, E_NULL_POINTER);
+	ASSERT(result != NULL, E_NULL_POINTER);
 	ASSERT(curr_session != NULL, E_NULL_POINTER);
 	
 	initReadStream(&input_msg);
 
 	/* evaluate difference between start  time and
 	   current time in order to use the real app timeout value */
-	if(evaluateRemainingTime(&remaining_time, curr_session->startTime, (uint8_t)INIT_CONNECTION_TIMEOUT) == RETURN_ERROR)
+	if(evaluateRemainingTime(&remaining_time, curr_session->startTime, (uint8_t)INIT_CONNECTION_TIMEOUT) != SUCCESS)
 	{
-		return(RETURN_ERROR);
+		return(ERROR);
 	}
-	
-	if(receiveMsg(&input_msg, remaining_time, curr_session->tlsID) == TLS_TIMEOUT)
+
+	if( receiveMsg(&input_msg, remaining_time, curr_session->tlsID) != SUCCESS )
 	{
-		return (TLS_TIMEOUT);
+		return (error_code);
 	}
-	else
-	{
-		/* set the start time */
-		gettimeofday(&(curr_session->startTime), NULL);
-	}
+
+	/* set the start time */
+	gettimeofday(&(curr_session->startTime), NULL);
 
 	convertMsgHeaderToHost(&header, &input_msg);
 
-	ret_val = checkMsgHeader(curr_session,
-							 &header,
-							 input_msg.validBytes);
+	checkMsgHeader(curr_session, result, &header, input_msg.validBytes);
 	
-	if( ret_val != RESP_OK)
+	if( *result != RESP_OK)
 	{
 		warning_print("Error on checking header\n");
-		return(ret_val);
 	}
 	else
 	{
 		if( header.msgType != NOTIF_SESSION_INIT )
 		{
-			err_print("Unexpected msg type received: rec %d\n", header.msgType);
-			ret_val = RESP_NOT_SUPPORTED;
-			return(ret_val);
+			warning_print("Unexpected msg type received: rec %d\n", header.msgType);
+			*result = RESP_NOT_SUPPORTED;
 		}
 		else
 		{
 			convertNotifSessionInitToHost((notif_session_init_t*)payload, &input_msg);
 		}
+		
 		/* initialize peerSeqNumber */
 		curr_session->peerSeqNum = header.seqNum;
-		ret_val = RESP_OK;
+		*result = RESP_OK;
 	}
 	
-	return(ret_val);
+	return(SUCCESS);
 }
 
-static int32_t sendCmdAddKeys(const request_t* const request,
-							  const session_t* const curr_session)
+static error_code_t sendCmdAddKeys(const request_t* const request,
+								   const session_t* const curr_session)
 {
 	uint32_t i = 0U;
 	uint32_t j = 0U;
 	uint32_t k = 0U;
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
-
+	
 	ASSERT((curr_session != NULL) && (request != NULL), E_NULL_POINTER);
 	ASSERT(request->reqNum < MAX_REQ_ADD_KEYS,  E_INVALID_PARAM);
 
@@ -746,19 +743,22 @@ static int32_t sendCmdAddKeys(const request_t* const request,
 		hostToNet32(&ostream, request->kStructList[i].endValidity);
 	}
 
-	sendMsg(&ostream, curr_session->tlsID);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
 
-static int32_t sendCmdDeleteKeys(const request_t* const request,
-								 const session_t* const curr_session)
+static error_code_t sendCmdDeleteKeys(const request_t* const request,
+											  const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	uint32_t i = 0U;
 	write_stream_t ostream;
-
+	
 	ASSERT((curr_session != NULL) && (request != NULL), E_NULL_POINTER);
 	ASSERT(request->reqNum < MAX_REQ_DEL_KEYS,  E_INVALID_PARAM);
 
@@ -780,13 +780,16 @@ static int32_t sendCmdDeleteKeys(const request_t* const request,
 		hostToNet32(&ostream, request->kIdentList[i].serNum);
 	}
 
-	sendMsg(&ostream, curr_session->tlsID);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
 
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-static int32_t sendCmdUpKeyValidities(const request_t* const request,
-									  const session_t* const curr_session)
+static error_code_t sendCmdUpKeyValidities(const request_t* const request,
+												   const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	uint32_t i = 0U;
@@ -815,14 +818,17 @@ static int32_t sendCmdUpKeyValidities(const request_t* const request,
 		hostToNet32(&ostream, request->kValidityList[i].endValidity);
 	}
 
-	sendMsg(&ostream, curr_session->tlsID);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
 
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
 
-static int32_t sendCmdUpKeyEntities(const request_t* const request,
-									const session_t* const curr_session)
+static error_code_t sendCmdUpKeyEntities(const request_t* const request,
+												 const session_t* const curr_session)
 {
 	uint32_t i = 0U;
 	uint32_t j = 0U;
@@ -863,13 +869,16 @@ static int32_t sendCmdUpKeyEntities(const request_t* const request,
 		}
 	}
 
-	sendMsg(&ostream, curr_session->tlsID);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
 
-static int32_t sendCmdDeleteAllKeys(const session_t* const curr_session)
+static error_code_t sendCmdDeleteAllKeys(const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -887,12 +896,15 @@ static int32_t sendCmdDeleteAllKeys(const session_t* const curr_session)
 
 	/* this command does not have request,
 	   it consists only of the message header */
-	sendMsg(&ostream, curr_session->tlsID);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
 		
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-static int32_t sendCmdReqKeyDBChecksum(const session_t* const curr_session)
+static error_code_t sendCmdReqKeyDBChecksum(const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -908,14 +920,17 @@ static int32_t sendCmdReqKeyDBChecksum(const session_t* const curr_session)
 	buildMsgHeader(&ostream, msg_length, CMD_REQUEST_KEY_DB_CHECKSUM,
 				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
-	sendMsg(&ostream, curr_session->tlsID);
-	
-	return(RETURN_SUCCESS);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
+
+	return(SUCCESS);
 }
 
 
-static int32_t sendCmdReqKeyOperation(const request_t* const request,
-									  const session_t* const curr_session)
+static error_code_t sendCmdReqKeyOperation(const request_t* const request,
+												   const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -946,15 +961,18 @@ static int32_t sendCmdReqKeyOperation(const request_t* const request,
 	
 	hostToNet32(&ostream,  request->reqKeyOpPayload.textLength);
 	hostToNet8(&ostream, (uint8_t*)request->reqKeyOpPayload.text,
-			request->reqKeyOpPayload.textLength);
+			   request->reqKeyOpPayload.textLength);
 
-	sendMsg(&ostream, curr_session->tlsID);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-static int32_t sendNotifKeyUpdateStatus(const request_t* const request,
-										const session_t* const curr_session)
+static error_code_t sendNotifKeyUpdateStatus(const request_t* const request,
+													 const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -975,9 +993,12 @@ static int32_t sendNotifKeyUpdateStatus(const request_t* const request,
 	hostToNet32(&ostream, request->keyUpStatusPayload.kIdent.serNum);
 	hostToNet8(&ostream, &request->keyUpStatusPayload.kStatus, sizeof(uint8_t));
 
-	sendMsg(&ostream, curr_session->tlsID);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
 
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
 
@@ -986,8 +1007,8 @@ static int32_t sendNotifKeyUpdateStatus(const request_t* const request,
  * PUBLIC FUNCTION DECLARATIONS
  *****************************************************************************/
 
-int32_t sendNotifKeyDBChecksum(const response_t* const response,
-							   const session_t* const curr_session)
+error_code_t sendNotifKeyDBChecksum(const response_t* const response,
+											const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1006,13 +1027,16 @@ int32_t sendNotifKeyDBChecksum(const response_t* const response,
 	/* serialize payload */
 	hostToNet8(&ostream, response->dbChecksumPayload.checksum, (uint32_t)CHECKSUM_SIZE);
 
-	sendMsg(&ostream, curr_session->tlsID);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-int32_t sendNotifResponse(const response_t* const response,
-						  const session_t* const curr_session)
+error_code_t sendNotifResponse(const response_t* const response,
+									   const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1036,16 +1060,19 @@ int32_t sendNotifResponse(const response_t* const response,
 	if(response->notifPayload.reqNum != 0U)
 	{
 		hostToNet8(&ostream, response->notifPayload.notificationList,
-				sizeof(uint8_t)*response->notifPayload.reqNum);
+				   sizeof(uint8_t)*response->notifPayload.reqNum);
 	}
 
-	sendMsg(&ostream, curr_session->tlsID);
-
-	return(RETURN_SUCCESS);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
+	
+	return(SUCCESS);
 }
 
-int32_t sendNotifKeyOpReqRcvd(const response_t* const response,
-							  const session_t* const curr_session)
+error_code_t sendNotifKeyOpReqRcvd(const response_t* const response,
+										   const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1064,12 +1091,15 @@ int32_t sendNotifKeyOpReqRcvd(const response_t* const response,
 	/* serialize payload */
 	hostToNet16(&ostream, response->keyOpRecvdPayload.maxTime);
 
-	sendMsg(&ostream, curr_session->tlsID);
-
-	return(RETURN_SUCCESS);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
+	
+	return(SUCCESS);
 }
 
-int32_t sendNotifAckKeyUpStatus(const session_t* const curr_session)
+error_code_t sendNotifAckKeyUpStatus(const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1085,242 +1115,251 @@ int32_t sendNotifAckKeyUpStatus(const session_t* const curr_session)
 	buildMsgHeader(&ostream, msg_length, NOTIF_ACK_KEY_UPDATE_STATUS,
 				   curr_session->peerEtcsIDExp, curr_session->transNum);
 
-	sendMsg(&ostream, curr_session->tlsID);
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
 
 
 
-int32_t startClientTLS(uint32_t* const tls_id)
+error_code_t startClientTLS(uint32_t* const tls_id)
 {
 	ASSERT(tls_id != NULL, E_NULL_POINTER);
 
-	if(initClientTLS(tls_id) == TLS_ERROR)
+	if(initClientTLS(tls_id) != SUCCESS)
 	{
-		err_print("Error occurred in initClientTLS()\n");
-		return(E_TLS_ERROR);
+		return(ERROR);
 	}
 
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-int32_t connectToTLSServer(const uint32_t const tls_id,
-						   const char* const r_ip,
-						   const uint16_t r_port)
+error_code_t connectToTLSServer(const uint32_t const tls_id,
+										const char* const r_ip)
 {
 	ASSERT(r_ip != NULL, E_NULL_POINTER);
 
-	if(connectTLS(tls_id, r_ip, r_port) == TLS_ERROR)
+	if(connectTLS(tls_id, r_ip, DEFAULT_PORT) != SUCCESS)
 	{
-		err_print("Error occurred in connectTLS()\n");
-		return(E_TLS_ERROR);
+		return(ERROR);
 	}
 
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-int32_t startServerTLS(const uint16_t l_port)
+error_code_t startServerTLS(void)
 {
-	if(initServerTLS(l_port) == TLS_ERROR)
+	if(initServerTLS(DEFAULT_PORT) != SUCCESS)
 	{
-		err_print("Error occurred in initServerTLS()\n");
-		return(E_TLS_ERROR);
+		return(ERROR);
 	}
 
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-int32_t listenForTLSClient(uint32_t* const tls_id)
+error_code_t listenForTLSClient(uint32_t* const tls_id, uint32_t* const client_ip)
 {
 	ASSERT(tls_id != NULL, E_NULL_POINTER);
 
-	if(acceptTLS(tls_id) == TLS_ERROR)
+	if(acceptTLS(tls_id, client_ip) != SUCCESS)
 	{
 		err_print("Error occurred in acceptTLS()\n");
-		return(E_TLS_ERROR);
+		return(ERROR);
 	}
 
-	return(RETURN_SUCCESS);
+	debug_print("Connection from client %d.%d.%d.%d\n",
+				(*client_ip) & (0xFF),
+				(*client_ip >> 8) & (0xFF),
+				(*client_ip >> 16) & (0xFF),
+				(*client_ip >> 24) & (0xFF));
+
+	return(SUCCESS);
 }
 
-int32_t closeTLSConnection(const uint32_t tls_id)
+error_code_t closeTLSConnection(const uint32_t tls_id)
 {
 
 	closeTLS(tls_id);
 
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
 
-int32_t waitForRequestFromKMCToKMAC(request_t* const request,
-									session_t* const curr_session)
+error_code_t waitForRequestFromKMCToKMAC(request_t* const request,
+										 session_t* const curr_session)
 {
 	read_stream_t input_msg;
 	msg_header_t header;
-	int32_t ret_val_header = -1;
-
+	response_reason_t result;
+		
 	ASSERT(request != NULL, E_NULL_POINTER);
 	ASSERT(curr_session != NULL, E_NULL_POINTER);
 	
 	initReadStream(&input_msg);
 	
-	receiveMsg(&input_msg, curr_session->appTimeout, curr_session->tlsID);
+	if(receiveMsg(&input_msg, curr_session->appTimeout, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
 	
 	convertMsgHeaderToHost(&header, &input_msg);
 	
-	ret_val_header = checkMsgHeader(curr_session,
-									&header,
-									input_msg.validBytes);
+	checkMsgHeader(curr_session, &result, &header, input_msg.validBytes);
 
-	if(ret_val_header != RESP_OK)
+	if(result != RESP_OK)
 	{
+		/* tbd add send of notif init */
 		warning_print("Error on checking header\n");
-		return(ret_val_header);
+		return(ERROR);
 	}
-	else
+
+	switch(header.msgType)
 	{
-		switch(header.msgType)
-		{
-		case(CMD_ADD_KEYS):
-			convertCmdAddKeysToHost(request, &input_msg);
-			request->msgType = header.msgType;
-			break;
-		case(CMD_DELETE_KEYS):
-			convertCmdDeleteKeysToHost(request, &input_msg);
-			request->msgType = header.msgType;
-			break;
-		case(CMD_DELETE_ALL_KEYS):
-			/* this message has no request */
-			request->msgType = header.msgType;
-			break;
-		case(CMD_UPDATE_KEY_VALIDITIES):
-			convertCmdUpKeyValiditiesToHost(request, &input_msg);
-			request->msgType = header.msgType;
-			break;
-		case(CMD_UPDATE_KEY_ENTITIES):
-			convertCmdUpKeyEntitiesToHost(request, &input_msg);
-			request->msgType = header.msgType;
-			break;
-		case(CMD_REQUEST_KEY_DB_CHECKSUM):
-			/* this message has no payload */
-			request->msgType = header.msgType;
-			break;
-		case(NOTIF_END_OF_UPDATE):
-			/* this message has no payload */
-			request->msgType = header.msgType;
-			break;
-		default:
-			err_print("Unexpected msg type received: rec %d\n", header.msgType);
-			ret_val_header = RESP_NOT_SUPPORTED;
-			return(ret_val_header);
-		}
+	case(CMD_ADD_KEYS):
+		convertCmdAddKeysToHost(request, &input_msg);
+		request->msgType = header.msgType;
+		break;
+	case(CMD_DELETE_KEYS):
+		convertCmdDeleteKeysToHost(request, &input_msg);
+		request->msgType = header.msgType;
+		break;
+	case(CMD_DELETE_ALL_KEYS):
+		/* this message has no request */
+		request->msgType = header.msgType;
+		break;
+	case(CMD_UPDATE_KEY_VALIDITIES):
+		convertCmdUpKeyValiditiesToHost(request, &input_msg);
+		request->msgType = header.msgType;
+		break;
+	case(CMD_UPDATE_KEY_ENTITIES):
+		convertCmdUpKeyEntitiesToHost(request, &input_msg);
+		request->msgType = header.msgType;
+		break;
+	case(CMD_REQUEST_KEY_DB_CHECKSUM):
+		/* this message has no payload */
+		request->msgType = header.msgType;
+		break;
+	case(NOTIF_END_OF_UPDATE):
+		/* this message has no payload */
+		request->msgType = header.msgType;
+		break;
+	default:
+		/* tbd add send of notif init */
+		err_print("Unexpected msg type received: rec %d\n", header.msgType);
+		result = RESP_NOT_SUPPORTED;
+		return(ERROR);
 	}
 
 	curr_session->transNum = header.transNum;
 
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
 
-int32_t waitForRequestFromKMCToKMC(request_t* const request,
-								   session_t* const curr_session)
+error_code_t waitForRequestFromKMCToKMC(request_t* const request,
+										session_t* const curr_session)
 {
 	read_stream_t input_msg;
 	msg_header_t header;
-	int32_t ret_val_header = -1;
+	response_reason_t result;
 
 	ASSERT(request != NULL, E_NULL_POINTER);
 	ASSERT(curr_session != NULL, E_NULL_POINTER);
 	
 	initReadStream(&input_msg);
 	
-	receiveMsg(&input_msg, curr_session->appTimeout, curr_session->tlsID);
-	
+	if(receiveMsg(&input_msg, curr_session->appTimeout, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
+
 	convertMsgHeaderToHost(&header, &input_msg);
 	
-	ret_val_header = checkMsgHeader(curr_session,
-									&header,
-									input_msg.validBytes);
+	checkMsgHeader(curr_session, &result, &header, input_msg.validBytes);
 
-	if(ret_val_header != RESP_OK)
+	if(result != RESP_OK)
 	{
+		/* tbd add send of notif init */
 		err_print("Error on checking header\n");
-		return(ret_val_header);
+		return(ERROR);
 	}
-	else
+
+	switch(header.msgType)
 	{
-		switch(header.msgType)
-		{
-		case(CMD_ADD_KEYS):
-			convertCmdAddKeysToHost(request, &input_msg);
-			request->msgType = header.msgType;
-			break;
-		case(CMD_DELETE_KEYS):
-			convertCmdDeleteKeysToHost(request, &input_msg);
+	case(CMD_ADD_KEYS):
+		convertCmdAddKeysToHost(request, &input_msg);
 		request->msgType = header.msgType;
-			break;
-		case(CMD_UPDATE_KEY_VALIDITIES):
-			convertCmdUpKeyValiditiesToHost(request, &input_msg);
+		break;
+	case(CMD_DELETE_KEYS):
+		convertCmdDeleteKeysToHost(request, &input_msg);
 		request->msgType = header.msgType;
-			break;
-		case(CMD_UPDATE_KEY_ENTITIES):
-			convertCmdUpKeyEntitiesToHost(request, &input_msg);
+		break;
+	case(CMD_UPDATE_KEY_VALIDITIES):
+		convertCmdUpKeyValiditiesToHost(request, &input_msg);
 		request->msgType = header.msgType;
-			break;
-		case(CMD_REQUEST_KEY_OPERATION):
-			convertCmdReqKeyOperationToHost(request, &input_msg);
-			request->msgType = header.msgType;
-			break;
-		case(NOTIF_KEY_UPDATE_STATUS):
-			convertNotifKeyUpdateStatusToHost(request, &input_msg);
-			request->msgType = header.msgType;
-			break;
-		case(NOTIF_END_OF_UPDATE):
-			/* this message has no payload */
-			request->msgType = header.msgType;
-			break;
-		default:
-			err_print("Unexpected msg type received: rec %d\n", header.msgType);
-			ret_val_header = RESP_NOT_SUPPORTED;
-			return(ret_val_header);
-		}
+		break;
+	case(CMD_UPDATE_KEY_ENTITIES):
+		convertCmdUpKeyEntitiesToHost(request, &input_msg);
+		request->msgType = header.msgType;
+		break;
+	case(CMD_REQUEST_KEY_OPERATION):
+		convertCmdReqKeyOperationToHost(request, &input_msg);
+		request->msgType = header.msgType;
+		break;
+	case(NOTIF_KEY_UPDATE_STATUS):
+		convertNotifKeyUpdateStatusToHost(request, &input_msg);
+		request->msgType = header.msgType;
+		break;
+	case(NOTIF_END_OF_UPDATE):
+		/* this message has no payload */
+		request->msgType = header.msgType;
+		break;
+	default:
+		/* tbd add send of notif init */
+		err_print("Unexpected msg type received: rec %d\n", header.msgType);
+		result = RESP_NOT_SUPPORTED;
+		return(ERROR);
 	}
-	return(RETURN_SUCCESS);
+	
+	return(SUCCESS);
 }
 
-int32_t waitForResponse(response_t* const response,
-						session_t* const curr_session,
-						const MSG_TYPE exp_msg_type)
+static error_code_t waitForResponse(response_t* const response,
+									session_t* const curr_session,
+									response_reason_t* const result,
+									const msg_type_t exp_msg_type)
 {
 	msg_header_t header;
-	int32_t ret_val_header = -1;
 	read_stream_t input_msg;
-
+										   
 	ASSERT(response!= NULL, E_NULL_POINTER);
 	ASSERT(curr_session != NULL, E_NULL_POINTER);
 
 	initReadStream(&input_msg);
 		
-	receiveMsg(&input_msg, curr_session->appTimeout, curr_session->tlsID);
+	if(receiveMsg(&input_msg, curr_session->appTimeout, curr_session->tlsID) != SUCCESS)
+	{
+		return(ERROR);
+	}
 
 	convertMsgHeaderToHost(&header, &input_msg);
 
-	ret_val_header = checkMsgHeader(curr_session,
-									&header,
-									input_msg.validBytes);
+	checkMsgHeader(curr_session, result, &header, input_msg.validBytes);
 	
-	if(ret_val_header != RESP_OK)
+	if(*result != RESP_OK)
 	{
 		err_print("Error on checking header\n");
-		return(ret_val_header);
+		return(ERROR);
 	}
 	else
 	{
 		/* notif response could be received in case of error */
 		if((exp_msg_type != header.msgType ) &&
-			exp_msg_type != NOTIF_RESPONSE)
+		   exp_msg_type != NOTIF_RESPONSE)
 		{
 			err_print("Unexpected msg type received: rec %d\n", header.msgType);
 		}
@@ -1341,21 +1380,21 @@ int32_t waitForResponse(response_t* const response,
 				/* this message has no payload */
 				break;
 			default:
-				ret_val_header = RESP_NOT_SUPPORTED;
-				return(ret_val_header);
+				*result = RESP_NOT_SUPPORTED;
+				return(ERROR);
 			}
 		}
 	}
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-int32_t initAppSession(session_t* const curr_session,
-					   const uint8_t app_timeout,
-					   const uint32_t peer_etcs_id_exp)
+error_code_t initAppSession(session_t* const curr_session,
+									const uint8_t app_timeout,
+									const uint32_t peer_etcs_id_exp)
 {
 	notif_session_init_t response;
-	int32_t ret_val = -1;
+	response_reason_t result = RESP_OK;
 
 	/* init session struct */
 	/* the transaction number for init
@@ -1365,301 +1404,291 @@ int32_t initAppSession(session_t* const curr_session,
 	curr_session->peerEtcsIDExp = peer_etcs_id_exp;
 	gettimeofday(&(curr_session->startTime), NULL);
 	
-	sendNotifSessionInit(curr_session);
-
-	ret_val = waitForSessionInit(&response, curr_session);
-	if(ret_val == E_CONN_TIMEOUT)
+	if(sendNotifSessionInit(curr_session) != SUCCESS)
 	{
-		return(OP_NOK);
+		return(ERROR);
+	}
+
+	if(waitForSessionInit(&response, &result, curr_session) != SUCCESS)
+	{
+		return(ERROR);
+	}
+		
+	if(result != RESP_OK)
+	{
+		response_t response;
+		response.notifPayload.reason = result;
+		response.notifPayload.reqNum = 0U;
+		sendNotifResponse(&response, curr_session);
+		return(ERROR);
 	}
 	else
 	{
-		if(ret_val != RESP_OK)
+		/* negotiate app_timeout and verify interface version compatibility */
+		if(curr_session->appTimeout == APP_TIMEOUT_PEER_DEF)
 		{
-			response_t response;
-			response.notifPayload.reason = ret_val;
-			response.notifPayload.reqNum = 0U;
-			sendNotifResponse(&response,
+			curr_session->appTimeout = response.appTimeout;
+		}
+		
+		if( response.version[0] != supportedVersion[0] )
+		{
+			response_t notif_response;
+			notif_response.notifPayload.reason = RESP_WRONG_VERSION;
+			notif_response.notifPayload.reqNum = 0U;
+			sendNotifResponse(&notif_response,
 							  curr_session);
-			return(OP_NOK);
+			return(ERROR);
 		}
-		else
-		{
-			/* negotiate app_timeout and verify interface version compatibility */
-			if(curr_session->appTimeout == APP_TIMEOUT_PEER_DEF)
-			{
-				curr_session->appTimeout = response.appTimeout;
-			}
-
-			if( response.version[0] != supportedVersion[0] )
-			{
-				response_t notif_response;
-				notif_response.notifPayload.reason = RESP_WRONG_VERSION;
-				notif_response.notifPayload.reqNum = 0U;
-				sendNotifResponse(&notif_response,
-								  curr_session);
-				return(OP_NOK);
-			}
-
-			curr_session->transNum++;
-		}
+		
+		curr_session->transNum++;
 	}
 
-	return(OP_OK);
+	return(SUCCESS);
 }
 
 /* this function send the notif session end message */
-int32_t endAppSession(session_t* const curr_session)
+error_code_t endAppSession(session_t* const curr_session)
 {
 
-	sendNotifSessionEnd(curr_session);
+	if(sendNotifSessionEnd(curr_session) != SUCCESS)
+	{
+		return(ERROR);
+	}
 
-	return(OP_OK);
+	return(SUCCESS);
 }
 
 
-int32_t performAddKeysOperation(session_t* const curr_session,
-								response_t* const response,
-								const request_t* const request)
+error_code_t performAddKeysOperation(session_t* const curr_session,
+									 response_t* const response,
+									 const request_t* const request)
 {
-	MSG_TYPE exp_msg_type = NOTIF_RESPONSE;
-	int32_t ret_val = -1;
-
-	sendCmdAddKeys(request, curr_session);
-
-	ret_val = waitForResponse(response, curr_session, exp_msg_type);
-	if(ret_val == E_CONN_TIMEOUT)
+	msg_type_t exp_msg_type = NOTIF_RESPONSE;
+	response_reason_t result;
+		
+	if(sendCmdAddKeys(request, curr_session) != SUCCESS)
 	{
-		return(OP_NOK);
+		return(ERROR);
+	}
+
+	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	{
+		return(ERROR);
+	}
+
+	if(result != RESP_OK)
+	{
+		response_t response;
+		response.notifPayload.reason = result;
+		response.notifPayload.reqNum = 0U;
+		sendNotifResponse(&response, curr_session);
+		return(ERROR);
+	}
+	else if ( request->reqNum != response->notifPayload.reqNum)
+	{
+		response_t response;
+		response.notifPayload.reason = RESP_WRONG_FORMAT;
+		response.notifPayload.reqNum = 0U;
+		sendNotifResponse(&response, curr_session);
+		return(ERROR);
 	}
 	else
 	{
-
-		if(ret_val != RESP_OK)
-		{
-			response_t response;
-			response.notifPayload.reason = ret_val;
-			response.notifPayload.reqNum = 0U;
-			sendNotifResponse(&response,
-							  curr_session);
-			return(OP_NOK);
-		}
-		else if ( request->reqNum != response->notifPayload.reqNum)
-		{
-			response_t response;
-			response.notifPayload.reason = RESP_WRONG_FORMAT;
-			response.notifPayload.reqNum = 0U;
-			sendNotifResponse(&response,
-							  curr_session);
-			return(OP_NOK);
-		}
-		else
-		{
-			curr_session->transNum++;
-		}
+		curr_session->transNum++;
 	}
 	
-	return(RETURN_SUCCESS);
+	return(SUCCESS);
 }
 
-int32_t performDelKeysOperation(session_t* const curr_session,
-								response_t* const response,
-								const request_t* const request)
+error_code_t performDelKeysOperation(session_t* const curr_session,
+											 response_t* const response,
+											 const request_t* const request)
 {
-	MSG_TYPE exp_msg_type = NOTIF_RESPONSE;
-	int32_t ret_val = -1;
-
-	sendCmdDeleteKeys(request, curr_session);
-
-	ret_val = waitForResponse(response, curr_session, exp_msg_type);
-	if(ret_val == E_CONN_TIMEOUT)
+	msg_type_t exp_msg_type = NOTIF_RESPONSE;
+	response_reason_t result;
+	
+	if(sendCmdDeleteKeys(request, curr_session) != SUCCESS)
 	{
-		return(OP_NOK);
+		return(ERROR);
+	}
+
+	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	{
+		return(ERROR);
+	}
+
+	if(result != RESP_OK)
+	{
+		response_t response;
+		response.notifPayload.reason = result;
+		response.notifPayload.reqNum = 0U;
+		sendNotifResponse(&response, curr_session);
+		return(ERROR);
+	}
+	else if ( request->reqNum != response->notifPayload.reqNum)
+	{
+		response_t response;
+		response.notifPayload.reason = RESP_WRONG_FORMAT;
+		response.notifPayload.reqNum = 0U;
+		sendNotifResponse(&response, curr_session);
+		return(ERROR);
 	}
 	else
 	{
-		if(ret_val != RESP_OK)
-		{
-			response_t response;
-			response.notifPayload.reason = ret_val;
-			response.notifPayload.reqNum = 0U;
-			sendNotifResponse(&response,
-							  curr_session);
-			return(OP_NOK);
-		}
-		else if ( request->reqNum != response->notifPayload.reqNum)
-		{
-			response_t response;
-			response.notifPayload.reason = RESP_WRONG_FORMAT;
-			response.notifPayload.reqNum = 0U;
-			sendNotifResponse(&response,
-							  curr_session);
-			return(OP_NOK);
-		}
-		else
-		{
-			curr_session->transNum++;
-		}
+		curr_session->transNum++;
 	}
 		
-	return(OP_OK);
+	return(SUCCESS);
 }
 
-int32_t performUpKeyValiditiesOperation(session_t* const curr_session,
-										response_t* const response,
-										const request_t* const request)
+error_code_t performUpKeyValiditiesOperation(session_t* const curr_session,
+													 response_t* const response,
+													 const request_t* const request)
 {
-	MSG_TYPE exp_msg_type = NOTIF_RESPONSE;
-	int32_t ret_val = -1;
-
-	sendCmdUpKeyValidities(request, curr_session);
-
-	ret_val = waitForResponse(response, curr_session, exp_msg_type);
-	if(ret_val == E_CONN_TIMEOUT)
+	msg_type_t exp_msg_type = NOTIF_RESPONSE;
+	response_reason_t result;
+	
+	if(sendCmdUpKeyValidities(request, curr_session) != SUCCESS)
 	{
-		return(OP_NOK);
+		return(ERROR);
+	}
+
+	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	{
+		return(ERROR);
+	}
+
+	if(result != RESP_OK)
+	{
+		response_t response;
+		response.notifPayload.reason = result;
+		response.notifPayload.reqNum = 0U;
+		sendNotifResponse(&response,
+						  curr_session);
+		return(ERROR);
+	}
+	else if ( request->reqNum != response->notifPayload.reqNum)
+	{
+		response_t response;
+		response.notifPayload.reason = RESP_WRONG_FORMAT;
+		response.notifPayload.reqNum = 0U;
+		sendNotifResponse(&response,
+						  curr_session);
+		return(ERROR);
 	}
 	else
 	{
-
-		if(ret_val != RESP_OK)
-		{
-			response_t response;
-			response.notifPayload.reason = ret_val;
-			response.notifPayload.reqNum = 0U;
-			sendNotifResponse(&response,
-							  curr_session);
-			return(OP_NOK);
-		}
-		else if ( request->reqNum != response->notifPayload.reqNum)
-		{
-			response_t response;
-			response.notifPayload.reason = RESP_WRONG_FORMAT;
-			response.notifPayload.reqNum = 0U;
-			sendNotifResponse(&response,
-							  curr_session);
-			return(OP_NOK);
-		}
-		else
-		{
-			curr_session->transNum++;
-		}
+		curr_session->transNum++;
 	}
 
-	return(OP_OK);
+	return(SUCCESS);
 }
 
-int32_t performUpKeyEntitiesOperation(session_t* const curr_session,
-									  response_t* const response,
-									  const request_t* const request)
+error_code_t performUpKeyEntitiesOperation(session_t* const curr_session,
+										   response_t* const response,
+										   const request_t* const request)
 {
-	MSG_TYPE exp_msg_type = NOTIF_RESPONSE;
-	int32_t ret_val = -1;
-
-	sendCmdUpKeyEntities(request, curr_session);
-
-	ret_val = waitForResponse(response, curr_session, exp_msg_type);
-	if(ret_val == E_CONN_TIMEOUT)
+	msg_type_t exp_msg_type = NOTIF_RESPONSE;
+	response_reason_t result;
+	
+	if(sendCmdUpKeyEntities(request, curr_session) != SUCCESS)
 	{
-		return(OP_NOK);
+		return(ERROR);
+	}
+
+	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	{
+		return(ERROR);
+	}
+
+	if(result != RESP_OK)
+	{
+		response_t response;
+		response.notifPayload.reason = result;
+		response.notifPayload.reqNum = 0U;
+		sendNotifResponse(&response,
+						  curr_session);
+		return(ERROR);
+	}
+	else if ( request->reqNum != response->notifPayload.reqNum)
+	{
+		response_t response;
+		response.notifPayload.reason = RESP_WRONG_FORMAT;
+		response.notifPayload.reqNum = 0U;
+		sendNotifResponse(&response,
+						  curr_session);
+		return(ERROR);
 	}
 	else
 	{
-
-		if(ret_val != RESP_OK)
-		{
-			response_t response;
-			response.notifPayload.reason = ret_val;
-			response.notifPayload.reqNum = 0U;
-			sendNotifResponse(&response,
-							  curr_session);
-			return(OP_NOK);
-		}
-		else if ( request->reqNum != response->notifPayload.reqNum)
-		{
-			response_t response;
-			response.notifPayload.reason = RESP_WRONG_FORMAT;
-			response.notifPayload.reqNum = 0U;
-			sendNotifResponse(&response,
-							  curr_session);
-			return(OP_NOK);
-		}
-		else
-		{
-			curr_session->transNum++;
-		}
-	}
-	return(OP_OK);
-}
-
-
-int32_t performDeleteAllKeysOperation(session_t* const curr_session,
-									  response_t* const response)
-{
-	MSG_TYPE exp_msg_type = NOTIF_RESPONSE;
-	int32_t ret_val = -1;
-
-	sendCmdDeleteAllKeys(curr_session);
-
-	ret_val = waitForResponse(response, curr_session, exp_msg_type);
-	if(ret_val == E_CONN_TIMEOUT)
-	{
-		return(OP_NOK);
-	}
-	else
-	{
-		
-		if(ret_val != RESP_OK)
-		{
-			response_t response;
-			response.notifPayload.reason = ret_val;
-			response.notifPayload.reqNum = 0U;
-			sendNotifResponse(&response,
-							  curr_session);
-			return(OP_NOK);
-		}
-		else
-		{
-			curr_session->transNum++;
-		}
-	}
-
-	return(OP_OK);
-}
-
-int32_t performReqDBChecksumOperation(session_t* const curr_session,
-									  response_t* const response)
-{
-	MSG_TYPE exp_msg_type = NOTIF_KEY_DB_CHECKSUM;
-	int32_t ret_val = -1;
-
-	sendCmdReqKeyDBChecksum(curr_session);
-
-	ret_val = waitForResponse(response, curr_session, exp_msg_type);
-	if(ret_val == E_CONN_TIMEOUT)
-	{
-		return(OP_NOK);
-	}
-	else
-	{
-		if(ret_val != RESP_OK)
-		{
-			response_t response;
-			response.notifPayload.reason = ret_val;
-			response.notifPayload.reqNum = 0U;
-			sendNotifResponse(&response,
-							  curr_session);
-			return(OP_NOK);
-		}
-		else
-		{
-			curr_session->transNum++;
-		}
+		curr_session->transNum++;
 	}
 	
-	return(OP_OK);
+	return(SUCCESS);
 }
 
 
+error_code_t performDeleteAllKeysOperation(session_t* const curr_session,
+												   response_t* const response)
+{
+	msg_type_t exp_msg_type = NOTIF_RESPONSE;
+	response_reason_t result;
+	
+	if(sendCmdDeleteAllKeys(curr_session) != SUCCESS)
+	{
+		return(ERROR);
+	}
 
+	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	{
+		return(ERROR);
+	}
 
+	if(result != RESP_OK)
+	{
+		response_t response;
+		response.notifPayload.reason = result;
+		response.notifPayload.reqNum = 0U;
+		sendNotifResponse(&response, curr_session);
+		return(ERROR);
+	}
+	else
+	{
+		curr_session->transNum++;
+	}
+
+	return(SUCCESS);
+}
+
+error_code_t performReqDBChecksumOperation(session_t* const curr_session,
+												   response_t* const response)
+{
+	msg_type_t exp_msg_type = NOTIF_KEY_DB_CHECKSUM;
+	response_reason_t result;
+	
+	if(sendCmdReqKeyDBChecksum(curr_session) != SUCCESS)
+	{
+		return(ERROR);
+	}
+
+	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	{
+		return(ERROR);
+	}
+
+	if(result != RESP_OK)
+	{
+		response_t response;
+		response.notifPayload.reason = result;
+		response.notifPayload.reqNum = 0U;
+		sendNotifResponse(&response,
+						  curr_session);
+		return(ERROR);
+	}
+	else
+	{
+		curr_session->transNum++;
+	}
+	
+	return(SUCCESS);
+}

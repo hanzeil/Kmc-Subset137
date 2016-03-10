@@ -94,7 +94,7 @@ typedef enum
 	NOTIF_RESPONSE               = 11,
 	NOTIF_KEY_OPERATION_REQ_RCVD = 12,
 	NOTIF_KEY_DB_CHECKSUM        = 13
-} MSG_TYPE;
+} msg_type_t;
 
 typedef struct
 {
@@ -158,7 +158,7 @@ typedef struct
 
 typedef struct
 {
-	MSG_TYPE            msgType;
+	msg_type_t          msgType;
 	uint16_t            reqNum;
 	k_struct_t          kStructList[MAX_REQ_ADD_KEYS];
 	k_ident_t           kIdentList[MAX_REQ_DEL_KEYS];
@@ -198,7 +198,7 @@ typedef struct
 
 typedef struct
 {
-	MSG_TYPE                msgType;
+	msg_type_t              msgType;
 	notif_response_t        notifPayload;
 	notif_key_db_checksum_t dbChecksumPayload;
 	notif_key_op_req_rcvd_t keyOpRecvdPayload;
@@ -210,14 +210,14 @@ typedef enum
 	MOD_AREA     = 1,
 	RED_SCHED    = 2,
 	APPR_END_VAL = 3
-} REQ_KEY_OP;
+} req_key_op_t;
 
 typedef enum
 {
 	KEY_INST  = 1,
 	KEY_UP    = 2,
 	KEY_DEL   = 3
-} K_STATUS;
+} k_status_t;
 
 typedef enum
 {
@@ -233,7 +233,7 @@ typedef enum
 	RESP_WRONG_SEQ_NUM    = 9,
 	RESP_WRONG_TRANS_NUM  = 10,
 	RESP_WRONG_FORMAT     = 11
-} RESPONSE_REASON;
+} response_reason_t;
 
 typedef enum
 {
@@ -243,6 +243,6 @@ typedef enum
 	KEY_EXIST     = 3,
 	KEY_CORRUPTED = 4,
 	WRONG_ID      = 5
-} NOTIFY_REASON;
+} notif_reason_t;
 
 #endif /* KMC_MSG_DEFINITIONS_H_ */

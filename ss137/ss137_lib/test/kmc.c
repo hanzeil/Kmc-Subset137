@@ -72,9 +72,9 @@ int main(int argc, char *argv[])
 
 	startClientTLS(&session.tlsID);
 
-	connectToTLSServer(session.tlsID, argv[1], atoi(argv[2]));
+	connectToTLSServer(session.tlsID, argv[1]);
 
-	if(initAppSession(&session, 0x3, 0x11223344) == OP_NOK)
+	if(initAppSession(&session, 0x3, 0x11223344) != SUCCESS)
 	{
 		closeTLSConnection(session.tlsID);
 	}
@@ -85,39 +85,57 @@ int main(int argc, char *argv[])
 		debug_print("----------------------------------------------------------\n");
 		debug_print("----------------------------------------------------------\n");
 		/* first transaction */
-		for(i = 0U; i < atoi(argv[3]); i++)
+		for(i = 0U; i < atoi(argv[2]); i++)
 		{
 			memmove(request.kStructList, &k_struct, sizeof(k_struct_t));
-			performAddKeysOperation(&session, &response, &request);
-			
+			if(performAddKeysOperation(&session, &response, &request) != SUCCESS)
+			{
+				break;
+			}
+
 			debug_print("----------------------------------------------------------\n");
 			debug_print("----------------------------------------------------------\n");
 			
 			memmove(request.kIdentList, &k_ident, sizeof(k_ident_t));
-			performDelKeysOperation(&session, &response, &request);
-			
+			if(performDelKeysOperation(&session, &response, &request)!= SUCCESS)
+			{
+				break;
+			}
+
 			debug_print("----------------------------------------------------------\n");
 			debug_print("----------------------------------------------------------\n");
 			
 			memmove(request.kValidityList, &k_validity, sizeof(k_validity_t));
-			performUpKeyValiditiesOperation(&session, &response, &request);
-			
+			if(performUpKeyValiditiesOperation(&session, &response, &request)!= SUCCESS)
+			{
+				break;
+			}
+
 			debug_print("----------------------------------------------------------\n");
 			debug_print("----------------------------------------------------------\n");
 			
 			memmove(request.kEntityList, &k_entity, sizeof(k_entity_t));
-			performUpKeyEntitiesOperation(&session, &response, &request);
-			
+			if(performUpKeyEntitiesOperation(&session, &response, &request)!= SUCCESS)
+			{
+				break;
+			}
+
 			debug_print("----------------------------------------------------------\n");
 			debug_print("----------------------------------------------------------\n");
 			
-			performDeleteAllKeysOperation(&session,	&response);
-			
+			if(performDeleteAllKeysOperation(&session,	&response)!= SUCCESS)
+			{
+				break;
+			}
+
 			debug_print("----------------------------------------------------------\n");
 			debug_print("----------------------------------------------------------\n");
 			
-			performReqDBChecksumOperation(&session,	&response);
-			
+			if(performReqDBChecksumOperation(&session,	&response)!= SUCCESS)
+			{
+				break;
+			}
+
 			debug_print("----------------------------------------------------------\n");
 			debug_print("----------------------------------------------------------\n");
 			

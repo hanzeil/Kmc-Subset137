@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "common.h"
 #include "net_utils.h"
@@ -17,17 +18,28 @@ int main(int argc, char *argv[])
 	bool_t stop = FALSE;
 	response_t response;
 	uint32_t i = 0U;
+	uint32_t client_ip = 0U;
 
 	memset(&session, 0, sizeof(session_t));
 
-	startServerTLS(atoi(argv[1]));
+	if(startServerTLS() != SUCCESS)
+	{
+		exit(1);
+	}
 
 	while(1)
 	{
-		listenForTLSClient(&session.tlsID);
+		if(listenForTLSClient(&session.tlsID, &client_ip) != SUCCESS)
+		{
+			exit(1);
+		}
 
-		sleep(5U);
-		initAppSession(&session, 0xff, 0xAABBCCDD);
+		sleep(17U);
+		if(initAppSession(&session, 0xff, 0xAABBCCDD) != SUCCESS)
+		{
+			closeTLSConnection(session.tlsID);
+			continue;
+		}
 
 		debug_print("----------------------------------------------------------\n");
 		debug_print("----------------------------------------------------------\n");
@@ -35,7 +47,11 @@ int main(int argc, char *argv[])
 
 		while(stop == FALSE)
 		{
-			waitForRequestFromKMCToKMAC(&request, &session);
+			if(waitForRequestFromKMCToKMAC(&request, &session) != SUCCESS)
+			{
+				stop = TRUE;
+				continue;
+			}
 
 			debug_print("Request received : %d\n", request.msgType);
 
@@ -55,7 +71,11 @@ int main(int argc, char *argv[])
 			case(CMD_DELETE_ALL_KEYS):
 				response.notifPayload.reason = RESP_OK;
 				response.notifPayload.reqNum = 0;
-				sendNotifResponse(&response, &session);
+				if(sendNotifResponse(&response, &session) != SUCCESS)
+				{
+					stop = TRUE;
+					continue;
+				}
 				break;
 			default:
 				/* some processing of request */
@@ -67,14 +87,19 @@ int main(int argc, char *argv[])
 					response.notifPayload.notificationList[i] = 0U;
 				}
 				
-				sendNotifResponse(&response, &session);
+				if(sendNotifResponse(&response, &session) != SUCCESS)
+				{
+					stop = TRUE;
+					continue;
+				}
+
 				break;
 			}
 			session.transNum++;
 			request.reqNum = 0;
 			debug_print("----------------------------------------------------------\n");
 			debug_print("----------------------------------------------------------\n");
-			
+			sleep(2U);
 		}
 		stop = FALSE;
 		closeTLSConnection(session.tlsID);

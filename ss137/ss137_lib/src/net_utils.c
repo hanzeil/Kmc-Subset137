@@ -1,21 +1,21 @@
 /**************************************************************************//**
-																			 *
-																			 * ...
-																			 *
-																			 * This file ...
-																			 *
-																			 * @file: ss137/ss137_lib/src/net_utils.c
-																			 * $Author: $
-																			 * $Revision: $
-																			 * $Date: $
-																			 *
-																			 * History:
-																			 *
-																			 * Version     Date      Author         Change Description
-																			 *
-																			 *- $Id: $
-																			 *
-																			 ******************************************************************************/
+ *
+ * ...
+ *
+ * This file ...
+ *
+ * @file: ss137/ss137_lib/src/net_utils.c
+ * $Author: $
+ * $Revision: $
+ * $Date: $
+ *
+ * History:
+ *
+ * Version     Date      Author         Change Description
+ *
+ *- $Id: $
+ *
+ ******************************************************************************/
 
 /*****************************************************************************
  * INCLUDES
@@ -64,7 +64,7 @@ int32_t initWriteStream(write_stream_t *const ostream)
 
 	ostream->curSize = 0U;
 
-	return(RETURN_SUCCESS);
+	return(0);
 }
 
 
@@ -75,7 +75,7 @@ int32_t initReadStream(read_stream_t *const istream)
 	istream->curPos = 0U;
 	istream->validBytes = 0U;
 
-	return(RETURN_SUCCESS);
+	return(0);
 }
 
 
@@ -95,7 +95,7 @@ int32_t hostToNet32(write_stream_t* const ostream,
 	memmove((void*)&ostream->buffer[ostream->curSize], (void*)&new_var, (size_t)len);
 	ostream->curSize += len;
 
-	return(RETURN_SUCCESS);
+	return(0);
 }
 
 int32_t hostToNet16(write_stream_t* const ostream,
@@ -114,7 +114,7 @@ int32_t hostToNet16(write_stream_t* const ostream,
 	memmove((void*)&ostream->buffer[ostream->curSize], (void*)&new_var, (size_t)len);
 	ostream->curSize += len;
 
-	return(RETURN_SUCCESS);
+	return(0);
 }
 
 int32_t hostToNet8(write_stream_t* const ostream,
@@ -127,7 +127,7 @@ int32_t hostToNet8(write_stream_t* const ostream,
 	memmove((void*)&ostream->buffer[ostream->curSize], (void*)var, (size_t)len);
 	ostream->curSize += len;
 
-	return(RETURN_SUCCESS);
+	return(0);
 }
 
 int32_t netToHost32(uint32_t* const var,
@@ -147,7 +147,7 @@ int32_t netToHost32(uint32_t* const var,
 	*var = ntohl(new_var);
 	istream->curPos += len;
 
-	return(RETURN_SUCCESS);
+	return(0);
 }
 
 int32_t netToHost16(uint16_t* const var,
@@ -167,7 +167,7 @@ int32_t netToHost16(uint16_t* const var,
 	*var = ntohs(new_var);
 	istream->curPos += len;
 
-	return(RETURN_SUCCESS);
+	return(0);
 }
 
 
@@ -183,5 +183,5 @@ int32_t netToHost8(uint8_t* const var,
 	memmove((void*)var, (void*)&istream->buffer[istream->curPos], (size_t)len);
 	istream->curPos += len;
 
-	return(RETURN_SUCCESS);
+	return(0);
 }
