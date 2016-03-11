@@ -83,10 +83,10 @@ static error_code_t sendCmdDeleteAllKeys(const session_t* const curr_session);
 static error_code_t sendCmdReqKeyDBChecksum(const session_t* const curr_session);
 
 static error_code_t sendCmdReqKeyOperation(const request_t* const request,
-												   const session_t* const curr_session);
+										   const session_t* const curr_session);
 
 static error_code_t sendNotifKeyUpdateStatus(const request_t* const request,
-													 const session_t* const curr_session);
+											 const session_t* const curr_session);
 
 static error_code_t buildMsgHeader(write_stream_t* const ostream,
 										   const uint32_t msg_length,
@@ -972,7 +972,7 @@ static error_code_t sendCmdReqKeyOperation(const request_t* const request,
 }
 
 static error_code_t sendNotifKeyUpdateStatus(const request_t* const request,
-													 const session_t* const curr_session)
+											 const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1036,7 +1036,7 @@ error_code_t sendNotifKeyDBChecksum(const response_t* const response,
 }
 
 error_code_t sendNotifResponse(const response_t* const response,
-									   const session_t* const curr_session)
+							   const session_t* const curr_session)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1123,9 +1123,6 @@ error_code_t sendNotifAckKeyUpStatus(const session_t* const curr_session)
 	return(SUCCESS);
 }
 
-
-
-
 error_code_t startClientTLS(uint32_t* const tls_id)
 {
 	ASSERT(tls_id != NULL, E_NULL_POINTER);
@@ -1195,9 +1192,12 @@ error_code_t waitForRequestFromKMCToKMAC(request_t* const request,
 	read_stream_t input_msg;
 	msg_header_t header;
 	response_reason_t result;
-		
+	response_t error_response;
+			
 	ASSERT(request != NULL, E_NULL_POINTER);
 	ASSERT(curr_session != NULL, E_NULL_POINTER);
+
+	memset(&error_response, 0U, sizeof(response_t));
 	
 	initReadStream(&input_msg);
 	
@@ -1212,8 +1212,8 @@ error_code_t waitForRequestFromKMCToKMAC(request_t* const request,
 
 	if(result != RESP_OK)
 	{
-		/* tbd add send of notif init */
-		warning_print("Error on checking header\n");
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 
@@ -1248,9 +1248,9 @@ error_code_t waitForRequestFromKMCToKMAC(request_t* const request,
 		request->msgType = header.msgType;
 		break;
 	default:
-		/* tbd add send of notif init */
 		err_print("Unexpected msg type received: rec %d\n", header.msgType);
-		result = RESP_NOT_SUPPORTED;
+		error_response.notifPayload.reason = RESP_NOT_SUPPORTED;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 
@@ -1266,9 +1266,12 @@ error_code_t waitForRequestFromKMCToKMC(request_t* const request,
 	read_stream_t input_msg;
 	msg_header_t header;
 	response_reason_t result;
+	response_t error_response;
 
 	ASSERT(request != NULL, E_NULL_POINTER);
-	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);	
+
+	memset(&error_response, 0U, sizeof(response_t));
 	
 	initReadStream(&input_msg);
 	
@@ -1283,8 +1286,8 @@ error_code_t waitForRequestFromKMCToKMC(request_t* const request,
 
 	if(result != RESP_OK)
 	{
-		/* tbd add send of notif init */
-		err_print("Error on checking header\n");
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 
@@ -1321,7 +1324,8 @@ error_code_t waitForRequestFromKMCToKMC(request_t* const request,
 	default:
 		/* tbd add send of notif init */
 		err_print("Unexpected msg type received: rec %d\n", header.msgType);
-		result = RESP_NOT_SUPPORTED;
+		error_response.notifPayload.reason = RESP_NOT_SUPPORTED;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 	
@@ -1336,8 +1340,9 @@ static error_code_t waitForResponse(response_t* const response,
 	msg_header_t header;
 	read_stream_t input_msg;
 										   
-	ASSERT(response!= NULL, E_NULL_POINTER);
-	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);	
+	ASSERT(result != NULL, E_NULL_POINTER);
 
 	initReadStream(&input_msg);
 		
@@ -1359,7 +1364,7 @@ static error_code_t waitForResponse(response_t* const response,
 	{
 		/* notif response could be received in case of error */
 		if((exp_msg_type != header.msgType ) &&
-		   exp_msg_type != NOTIF_RESPONSE)
+		   (exp_msg_type != NOTIF_RESPONSE))
 		{
 			err_print("Unexpected msg type received: rec %d\n", header.msgType);
 		}
@@ -1395,7 +1400,10 @@ error_code_t initAppSession(session_t* const curr_session,
 {
 	notif_session_init_t response;
 	response_reason_t result = RESP_OK;
-
+	response_t error_response;
+	
+	memset(&error_response, 0U, sizeof(response_t));
+		
 	/* init session struct */
 	/* the transaction number for init
 	   session shall be set to 0 */
@@ -1416,30 +1424,25 @@ error_code_t initAppSession(session_t* const curr_session,
 		
 	if(result != RESP_OK)
 	{
-		response_t response;
-		response.notifPayload.reason = result;
-		response.notifPayload.reqNum = 0U;
-		sendNotifResponse(&response, curr_session);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 	else
 	{
+		if( response.version[0] != supportedVersion[0] )
+		{
+			error_response.notifPayload.reason = RESP_WRONG_VERSION;
+			sendNotifResponse(&error_response, curr_session);
+			return(ERROR);
+		}
+
 		/* negotiate app_timeout and verify interface version compatibility */
 		if(curr_session->appTimeout == APP_TIMEOUT_PEER_DEF)
 		{
 			curr_session->appTimeout = response.appTimeout;
 		}
-		
-		if( response.version[0] != supportedVersion[0] )
-		{
-			response_t notif_response;
-			notif_response.notifPayload.reason = RESP_WRONG_VERSION;
-			notif_response.notifPayload.reqNum = 0U;
-			sendNotifResponse(&notif_response,
-							  curr_session);
-			return(ERROR);
-		}
-		
+
 		curr_session->transNum++;
 	}
 
@@ -1465,7 +1468,14 @@ error_code_t performAddKeysOperation(session_t* const curr_session,
 {
 	msg_type_t exp_msg_type = NOTIF_RESPONSE;
 	response_reason_t result;
-		
+	response_t error_response;
+
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
+	ASSERT(request != NULL, E_NULL_POINTER);
+	
+	memset(&error_response, 0U, sizeof(response_t));
+
 	if(sendCmdAddKeys(request, curr_session) != SUCCESS)
 	{
 		return(ERROR);
@@ -1478,18 +1488,14 @@ error_code_t performAddKeysOperation(session_t* const curr_session,
 
 	if(result != RESP_OK)
 	{
-		response_t response;
-		response.notifPayload.reason = result;
-		response.notifPayload.reqNum = 0U;
-		sendNotifResponse(&response, curr_session);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 	else if ( request->reqNum != response->notifPayload.reqNum)
 	{
-		response_t response;
-		response.notifPayload.reason = RESP_WRONG_FORMAT;
-		response.notifPayload.reqNum = 0U;
-		sendNotifResponse(&response, curr_session);
+		error_response.notifPayload.reason = RESP_WRONG_FORMAT;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 	else
@@ -1501,12 +1507,19 @@ error_code_t performAddKeysOperation(session_t* const curr_session,
 }
 
 error_code_t performDelKeysOperation(session_t* const curr_session,
-											 response_t* const response,
-											 const request_t* const request)
+									 response_t* const response,
+									 const request_t* const request)
 {
 	msg_type_t exp_msg_type = NOTIF_RESPONSE;
 	response_reason_t result;
+	response_t error_response;
+
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
+	ASSERT(request != NULL, E_NULL_POINTER);
 	
+	memset(&error_response, 0U, sizeof(response_t));
+
 	if(sendCmdDeleteKeys(request, curr_session) != SUCCESS)
 	{
 		return(ERROR);
@@ -1519,18 +1532,14 @@ error_code_t performDelKeysOperation(session_t* const curr_session,
 
 	if(result != RESP_OK)
 	{
-		response_t response;
-		response.notifPayload.reason = result;
-		response.notifPayload.reqNum = 0U;
-		sendNotifResponse(&response, curr_session);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 	else if ( request->reqNum != response->notifPayload.reqNum)
 	{
-		response_t response;
-		response.notifPayload.reason = RESP_WRONG_FORMAT;
-		response.notifPayload.reqNum = 0U;
-		sendNotifResponse(&response, curr_session);
+		error_response.notifPayload.reason = RESP_WRONG_FORMAT;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 	else
@@ -1547,7 +1556,14 @@ error_code_t performUpKeyValiditiesOperation(session_t* const curr_session,
 {
 	msg_type_t exp_msg_type = NOTIF_RESPONSE;
 	response_reason_t result;
-	
+	response_t error_response;
+
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
+	ASSERT(request != NULL, E_NULL_POINTER);
+
+	memset(&error_response, 0U, sizeof(response_t));
+
 	if(sendCmdUpKeyValidities(request, curr_session) != SUCCESS)
 	{
 		return(ERROR);
@@ -1560,20 +1576,14 @@ error_code_t performUpKeyValiditiesOperation(session_t* const curr_session,
 
 	if(result != RESP_OK)
 	{
-		response_t response;
-		response.notifPayload.reason = result;
-		response.notifPayload.reqNum = 0U;
-		sendNotifResponse(&response,
-						  curr_session);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 	else if ( request->reqNum != response->notifPayload.reqNum)
 	{
-		response_t response;
-		response.notifPayload.reason = RESP_WRONG_FORMAT;
-		response.notifPayload.reqNum = 0U;
-		sendNotifResponse(&response,
-						  curr_session);
+		error_response.notifPayload.reason = RESP_WRONG_FORMAT;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 	else
@@ -1590,7 +1600,14 @@ error_code_t performUpKeyEntitiesOperation(session_t* const curr_session,
 {
 	msg_type_t exp_msg_type = NOTIF_RESPONSE;
 	response_reason_t result;
+	response_t error_response;
+
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
+	ASSERT(request != NULL, E_NULL_POINTER);
 	
+	memset(&error_response, 0U, sizeof(response_t));
+
 	if(sendCmdUpKeyEntities(request, curr_session) != SUCCESS)
 	{
 		return(ERROR);
@@ -1603,20 +1620,14 @@ error_code_t performUpKeyEntitiesOperation(session_t* const curr_session,
 
 	if(result != RESP_OK)
 	{
-		response_t response;
-		response.notifPayload.reason = result;
-		response.notifPayload.reqNum = 0U;
-		sendNotifResponse(&response,
-						  curr_session);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 	else if ( request->reqNum != response->notifPayload.reqNum)
 	{
-		response_t response;
-		response.notifPayload.reason = RESP_WRONG_FORMAT;
-		response.notifPayload.reqNum = 0U;
-		sendNotifResponse(&response,
-						  curr_session);
+		error_response.notifPayload.reason = RESP_WRONG_FORMAT;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 	else
@@ -1629,11 +1640,17 @@ error_code_t performUpKeyEntitiesOperation(session_t* const curr_session,
 
 
 error_code_t performDeleteAllKeysOperation(session_t* const curr_session,
-												   response_t* const response)
+										   response_t* const response)
 {
 	msg_type_t exp_msg_type = NOTIF_RESPONSE;
 	response_reason_t result;
+	response_t error_response;
+
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
 	
+	memset(&error_response, 0U, sizeof(response_t));
+
 	if(sendCmdDeleteAllKeys(curr_session) != SUCCESS)
 	{
 		return(ERROR);
@@ -1646,10 +1663,8 @@ error_code_t performDeleteAllKeysOperation(session_t* const curr_session,
 
 	if(result != RESP_OK)
 	{
-		response_t response;
-		response.notifPayload.reason = result;
-		response.notifPayload.reqNum = 0U;
-		sendNotifResponse(&response, curr_session);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 	else
@@ -1661,11 +1676,17 @@ error_code_t performDeleteAllKeysOperation(session_t* const curr_session,
 }
 
 error_code_t performReqDBChecksumOperation(session_t* const curr_session,
-												   response_t* const response)
+										   response_t* const response)
 {
 	msg_type_t exp_msg_type = NOTIF_KEY_DB_CHECKSUM;
 	response_reason_t result;
-	
+	response_t error_response;
+
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
+
+	memset(&error_response, 0U, sizeof(response_t));
+
 	if(sendCmdReqKeyDBChecksum(curr_session) != SUCCESS)
 	{
 		return(ERROR);
@@ -1678,11 +1699,82 @@ error_code_t performReqDBChecksumOperation(session_t* const curr_session,
 
 	if(result != RESP_OK)
 	{
-		response_t response;
-		response.notifPayload.reason = result;
-		response.notifPayload.reqNum = 0U;
-		sendNotifResponse(&response,
-						  curr_session);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
+	}
+	else
+	{
+		curr_session->transNum++;
+	}
+	
+	return(SUCCESS);
+}
+
+error_code_t performReqKeyOperation(session_t* const curr_session,
+									response_t* const response,
+									const request_t* const request)
+{
+	msg_type_t exp_msg_type = NOTIF_KEY_OPERATION_REQ_RCVD;
+	response_reason_t result;
+	response_t error_response;
+
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
+
+	memset(&error_response, 0U, sizeof(response_t));
+
+	if(sendCmdReqKeyOperation(request, curr_session) != SUCCESS)
+	{
+		return(ERROR);
+	}
+
+	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	{
+		return(ERROR);
+	}
+
+	if(result != RESP_OK)
+	{
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
+	}
+	else
+	{
+		curr_session->transNum++;
+	}
+	
+	return(SUCCESS);
+}
+
+error_code_t performNotifKeyUpStatusOperation(session_t* const curr_session,
+											  response_t* const response,
+											  const request_t* const request)
+{
+	msg_type_t exp_msg_type = NOTIF_ACK_KEY_UPDATE_STATUS;
+	response_reason_t result;
+	response_t error_response;
+
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
+
+	memset(&error_response, 0U, sizeof(response_t));
+
+	if(sendNotifKeyUpdateStatus(request, curr_session) != SUCCESS)
+	{
+		return(ERROR);
+	}
+
+	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	{
+		return(ERROR);
+	}
+
+	if(result != RESP_OK)
+	{
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
 	}
 	else

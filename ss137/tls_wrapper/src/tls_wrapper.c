@@ -42,10 +42,9 @@
 
 /** @name RSA-related pathnames
  **@{*/
-#define RSA_CLIENT_CERT       "newcert.pem"                      /**< RSA Client Certificate pathname */
-#define RSA_CLIENT_KEY        "newkey.pem"                       /**< RSA Client Key pathname */
-#define RSA_CLIENT_CA_PATH    "./demoCA"                         /**< RSA Client root CA Certificate path */
-#define RSA_CLIENT_CA_CERT    RSA_CLIENT_CA_PATH "/cacert.pem"   /**< RSA Client root CA Certificate full pathname */
+#define RSA_CLIENT_CERT       "cert.pem"     /**< RSA Client Certificate pathname */
+#define RSA_CLIENT_KEY        "key.pem"      /**< RSA Client Key pathname */
+#define RSA_CLIENT_CA_CERT    "cacert.pem"   /**< RSA Client root CA Certificate full pathname */
 /**@}*/
 
 

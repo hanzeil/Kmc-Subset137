@@ -52,7 +52,7 @@ error_code_t startClientTLS(uint32_t* const tls_id);
 error_code_t startServerTLS(void);
 
 error_code_t connectToTLSServer(const uint32_t const tls_id,
-										const char* const r_ip);
+								const char* const r_ip);
 
 error_code_t listenForTLSClient(uint32_t* const tls_id, uint32_t* const client_ip);
 
@@ -60,51 +60,59 @@ error_code_t closeTLSConnection(const uint32_t tls_id);
 
 /* receive */
 error_code_t waitForRequestFromKMCToKMC(request_t* const request,
-												session_t* const curr_session);
+										session_t* const curr_session);
 
 error_code_t waitForRequestFromKMCToKMAC(request_t* const request,
-												 session_t* const curr_session);
+										 session_t* const curr_session);
 
 
 
 
 error_code_t initAppSession(session_t* const curr_session,
-									const uint8_t app_timeout,
-									const uint32_t peer_etcs_id_exp);
+							const uint8_t app_timeout,
+							const uint32_t peer_etcs_id_exp);
 
 error_code_t endAppSession(session_t* const curr_session);
 
 error_code_t performAddKeysOperation(session_t* const curr_session,
-											 response_t* const response,
-											 const request_t* const request);
+									 response_t* const response,
+									 const request_t* const request);
 
 error_code_t performDelKeysOperation(session_t* const curr_session,
+									 response_t* const response,
+									 const request_t* const request);
+
+error_code_t performUpKeyValiditiesOperation(session_t* const curr_session,
 											 response_t* const response,
 											 const request_t* const request);
 
-error_code_t performUpKeyValiditiesOperation(session_t* const curr_session,
-													 response_t* const response,
-													 const request_t* const request);
-
 error_code_t performUpKeyEntitiesOperation(session_t* const curr_session,
-												   response_t* const response,
-												   const request_t* const request);
+										   response_t* const response,
+										   const request_t* const request);
 
 error_code_t performDeleteAllKeysOperation(session_t* const curr_session,
-												   response_t* const response);
+										   response_t* const response);
 
 error_code_t performReqDBChecksumOperation(session_t* const curr_session,
-												   response_t* const response);
+										   response_t* const response);
+
+error_code_t performNotifKeyUpStatusOperation(session_t* const curr_session,
+											  response_t* const response,
+											  const request_t* const request);
+
+error_code_t performReqKeyOperation(session_t* const curr_session,
+									response_t* const response,
+									const request_t* const request);
 
 
 error_code_t sendNotifResponse(const response_t* const response,
-									   const session_t* const curr_session);
+							   const session_t* const curr_session);
 
 error_code_t sendNotifKeyDBChecksum(const response_t* const response,
-											const session_t* const curr_session);
+									const session_t* const curr_session);
 
 error_code_t sendNotifKeyOpReqRcvd(const response_t* const response,
-										   const session_t* const curr_session);
+								   const session_t* const curr_session);
 
 error_code_t sendNotifAckKeyUpStatus(const session_t* const curr_session);
 
