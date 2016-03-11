@@ -37,14 +37,20 @@ typedef uint32_t tls_des_t;
  *****************************************************************************/
 
 /* client */
-error_code_t initClientTLS(tls_des_t* const tls_id);
+error_code_t initClientTLS(tls_des_t* const tls_id,
+						   const char* const ca_cert,
+						   const char *const key,
+						   const char* const cert);
 
 error_code_t connectTLS(const tls_des_t tls_id,
 				   const char* const r_ip,
 				   const uint16_t r_port);
 	
 /* server */
-error_code_t initServerTLS(const uint16_t l_port);
+error_code_t initServerTLS(const uint16_t l_port,
+						   const char* const ca_cert,
+						   const char *const key,
+						   const char* const cert);
 
 error_code_t acceptTLS(tls_des_t* const tls_id, uint32_t* const client_ip);
 

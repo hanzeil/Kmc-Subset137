@@ -1123,11 +1123,14 @@ error_code_t sendNotifAckKeyUpStatus(const session_t* const curr_session)
 	return(SUCCESS);
 }
 
-error_code_t startClientTLS(uint32_t* const tls_id)
+error_code_t startClientTLS(uint32_t* const tls_id,
+							const char* const ca_cert,
+							const char *const key,
+							const char* const cert)
 {
 	ASSERT(tls_id != NULL, E_NULL_POINTER);
 
-	if(initClientTLS(tls_id) != SUCCESS)
+	if(initClientTLS(tls_id, ca_cert, key, cert) != SUCCESS)
 	{
 		return(ERROR);
 	}
@@ -1148,9 +1151,11 @@ error_code_t connectToTLSServer(const uint32_t const tls_id,
 	return(SUCCESS);
 }
 
-error_code_t startServerTLS(void)
+error_code_t startServerTLS(const char* const ca_cert,
+							const char *const key,
+							const char* const cert)
 {
-	if(initServerTLS(DEFAULT_PORT) != SUCCESS)
+	if(initServerTLS(DEFAULT_PORT, ca_cert, key, cert) != SUCCESS)
 	{
 		return(ERROR);
 	}

@@ -10,6 +10,9 @@
 #include "msg_definitions.h"
 #include "ss137_lib.h"
 
+#define RSA_CA_CERT    "./cert/cacert.pem"   /**< RSA root CA Certificate pathname */
+#define RSA_CERT       "./cert/kmc_cert.pem"     /**< RSA Certificate pathname */
+#define RSA_KEY        "./cert/kmc_key.pem"      /**< RSA Key pathname */
 
 k_struct_t k_struct =
 {
@@ -70,7 +73,7 @@ int main(int argc, char *argv[])
 
 	memset(&session, 0, sizeof(session_t));
 
-	startClientTLS(&session.tlsID);
+	startClientTLS(&session.tlsID, RSA_CA_CERT, RSA_KEY, RSA_CERT);
 
 	connectToTLSServer(session.tlsID, argv[1]);
 

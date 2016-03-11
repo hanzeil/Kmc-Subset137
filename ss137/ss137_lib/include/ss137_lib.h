@@ -47,9 +47,14 @@ typedef struct
  *****************************************************************************/
 
 /* tls function */
-error_code_t startClientTLS(uint32_t* const tls_id);
+error_code_t startClientTLS(uint32_t* const tls_id,
+							const char* const ca_cert,
+							const char *const key,
+							const char* const cert);
 
-error_code_t startServerTLS(void);
+error_code_t startServerTLS(const char* const ca_cert,
+							const char *const key,
+							const char* const cert);
 
 error_code_t connectToTLSServer(const uint32_t const tls_id,
 								const char* const r_ip);

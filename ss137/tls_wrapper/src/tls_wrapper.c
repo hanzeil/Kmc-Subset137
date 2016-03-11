@@ -91,7 +91,7 @@ static error_code_t getPeerCertificate(SSL* ssl);
 /**
  * Some useful Doxygen comment for initTLS
  */
-static error_code_t initTLS(void);
+static error_code_t initTLS(const char* const ca_cert, const char *const key, const char* const cert);
 
 /**
  * Some useful Doxygen comment findTLSDes
@@ -172,10 +172,20 @@ static error_code_t getPeerCertificate
 	return(SUCCESS);
 }
 
-static error_code_t initTLS(void)
+static error_code_t initTLS(const char* const ca_cert,
+							const char *const key,
+							const char* const cert)
 {
 	const SSL_METHOD * meth = NULL;
 
+	ASSERT(ca_cert != NULL, E_NULL_POINTER);
+	ASSERT(key != NULL, E_NULL_POINTER);
+	ASSERT(cert != NULL, E_NULL_POINTER);
+
+	debug_print("CA cert:  %s\n", ca_cert);
+	debug_print("RSA Key:  %s\n", key);
+	debug_print("RSA Cert: %s\n", cert);
+	
 	/* Load encryption & hashing algorithms for the SSL program */
 	SSL_library_init();
  
@@ -198,21 +208,21 @@ static error_code_t initTLS(void)
 		return(ERROR);
 	}
  
-	/* Load the client certificate into the SSL_CTX structure */
-	if(!SSL_CTX_use_certificate_file(ctx, RSA_CLIENT_CERT, SSL_FILETYPE_PEM))
+	/* Load the certificate into the SSL_CTX structure */
+	if(!SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM))
 	{
 		ERR_print_errors_fp(stderr);
 		return(ERROR);
 	}
 	
-	/* Load the private-key corresponding to the client certificate */
-	if(!SSL_CTX_use_PrivateKey_file(ctx, RSA_CLIENT_KEY, SSL_FILETYPE_PEM))
+	/* Load the private-key corresponding to the certificate */
+	if(!SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM))
 	{
 		ERR_print_errors_fp(stderr);
 		return(ERROR);
 	}
 	
-	/* Check if the client certificate and private-key matches */
+	/* Check if the certificate and private-key matches */
 	if (!SSL_CTX_check_private_key(ctx))
 	{
 		ERR_print_errors_fp(stderr);
@@ -222,7 +232,7 @@ static error_code_t initTLS(void)
 	/* Load the RSA CA certificate into the SSL_CTX structure */
 	/* This will allow  to verify the peer's     */
 	/* certificate.                                           */
-	if(!SSL_CTX_load_verify_locations(ctx, RSA_CLIENT_CA_CERT, NULL))
+	if(!SSL_CTX_load_verify_locations(ctx, ca_cert, NULL))
 	{
 		ERR_print_errors_fp(stderr);
 		return(ERROR);
@@ -244,13 +254,20 @@ static error_code_t initTLS(void)
  *****************************************************************************/
 
 /* client */
-error_code_t initClientTLS(tls_des_t* const tls_id)
+error_code_t initClientTLS(tls_des_t* const tls_id,
+						   const char* const ca_cert,
+						   const char *const key,
+						   const char* const cert)
 {
 	int32_t tmp_sock = -1;
 
+	ASSERT(ca_cert != NULL, E_NULL_POINTER);
+	ASSERT(key != NULL, E_NULL_POINTER);
+	ASSERT(cert != NULL, E_NULL_POINTER);
+
 	ASSERT(tls_id != NULL, E_NULL_POINTER);
 
-	if(initTLS() != SUCCESS)
+	if(initTLS(ca_cert, key, cert) != SUCCESS)
 	{
 		err_print("Error during initTLS()\n");
 		return(ERROR);
@@ -329,11 +346,18 @@ error_code_t connectTLS(const tls_des_t tls_id, const char* const r_ip, const ui
 }
 
 /* server */
-error_code_t initServerTLS(const uint16_t l_port)
+error_code_t initServerTLS(const uint16_t l_port,
+						   const char* const ca_cert,
+						   const char *const key,
+						   const char* const cert)
 {
 	struct sockaddr_in sa_serv;
+	
+	ASSERT(ca_cert != NULL, E_NULL_POINTER);
+	ASSERT(key != NULL, E_NULL_POINTER);
+	ASSERT(cert != NULL, E_NULL_POINTER);
 
-	if(initTLS() != SUCCESS)
+	if(initTLS(ca_cert, key, cert) != SUCCESS)
 	{
 		err_print("Error during initTLS()\n");
 		return(ERROR);

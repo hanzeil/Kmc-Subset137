@@ -11,6 +11,11 @@
 #include "msg_definitions.h"
 #include "ss137_lib.h"
 
+#define RSA_CA_CERT    "./cert/cacert.pem"         /**< RSA root CA Certificate pathname */
+#define RSA_KEY        "./cert/track_key.pem"      /**< RSA Key pathname */
+#define RSA_CERT       "./cert/track_cert.pem"     /**< RSA Certificate pathname */
+
+
 int main(int argc, char *argv[])
 {
 	session_t session;
@@ -22,7 +27,7 @@ int main(int argc, char *argv[])
 
 	memset(&session, 0, sizeof(session_t));
 
-	if(startServerTLS() != SUCCESS)
+	if(startServerTLS(RSA_CA_CERT, RSA_KEY, RSA_CERT) != SUCCESS)
 	{
 		exit(1);
 	}
@@ -34,7 +39,6 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 
-		sleep(17U);
 		if(initAppSession(&session, 0xff, 0xAABBCCDD) != SUCCESS)
 		{
 			closeTLSConnection(session.tlsID);
