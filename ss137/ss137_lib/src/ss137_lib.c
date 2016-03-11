@@ -32,8 +32,8 @@
 
 #include "common.h"
 #include "net_utils.h"
-#include "tls_wrapper.h"
 #include "msg_definitions.h"
+#include "tls_wrapper.h"
 #include "ss137_lib.h"
 
 /*****************************************************************************
@@ -59,22 +59,22 @@ static const uint8_t supportedVersion[NUM_VERSION] = {2U};
  *****************************************************************************/
 
 /*init and close app level connection */
-static error_code_t sendNotifSessionInit(session_t* const curr_session);
+static error_code_t sendNotifSessionInit(const session_t* const curr_session);
 
-static error_code_t sendNotifSessionEnd(session_t* const curr_session);
+static error_code_t sendNotifSessionEnd(const session_t* const curr_session);
 
 /* command */
 static error_code_t sendCmdAddKeys(const request_t* const request,
-										   const session_t* const curr_session);
+								   const session_t* const curr_session);
 
 static error_code_t sendCmdDeleteKeys(const request_t* const request,
-											  const session_t* const curr_session);
+									  const session_t* const curr_session);
 
 static error_code_t sendCmdUpKeyValidities(const request_t* const request,
-												   const session_t* const curr_session);
+										   const session_t* const curr_session);
 
 static error_code_t sendCmdUpKeyEntities(const request_t* const payload,
-												 const session_t* const curr_session);
+										 const session_t* const curr_session);
 
 static error_code_t sendCmdReqKeyDBChecksum(const session_t* const curr_session);
 
@@ -89,60 +89,60 @@ static error_code_t sendNotifKeyUpdateStatus(const request_t* const request,
 											 const session_t* const curr_session);
 
 static error_code_t buildMsgHeader(write_stream_t* const ostream,
-										   const uint32_t msg_length,
-										   const uint32_t msg_type,
-										   const uint32_t peer_etcs_id_exp,
-										   const uint32_t trans_num);
+								   const uint32_t msg_length,
+								   const uint32_t msg_type,
+								   const uint32_t peer_etcs_id_exp,
+								   const uint32_t trans_num);
 
 /*convert request*/
 static error_code_t convertMsgHeaderToHost(msg_header_t* const header,
-												   read_stream_t* const istream);
+										   read_stream_t* const istream);
 
 static error_code_t convertCmdAddKeysToHost(request_t* const request,
-													read_stream_t* const istream);
+											read_stream_t* const istream);
 
 static error_code_t convertCmdDeleteKeysToHost(request_t* const request,
-													   read_stream_t* const istream);
+											   read_stream_t* const istream);
 	
 static error_code_t convertCmdUpKeyValiditiesToHost(request_t* const request,
-															read_stream_t* const istream);
+													read_stream_t* const istream);
 
 static error_code_t convertCmdUpKeyEntitiesToHost(request_t* const request,
-														  read_stream_t* const istream);
+												  read_stream_t* const istream);
 
 static error_code_t convertNotifKeyOpReqRcvdToHost(response_t* const response,
-														   read_stream_t* const istream);
+												   read_stream_t* const istream);
 
 static error_code_t convertNotifKeyUpdateStatusToHost(request_t* const request,
-															  read_stream_t* const istream);
+													  read_stream_t* const istream);
 
 static error_code_t convertCmdReqKeyOperationToHost(request_t* const request,
-															read_stream_t* const istream);
+													read_stream_t* const istream);
 
 /*convert response */
 static error_code_t convertNotifSessionInitToHost(notif_session_init_t* const request,
-														  read_stream_t* const istream);
+												  read_stream_t* const istream);
 
 static error_code_t convertNotifResponseToHost(response_t* const response,
-													   read_stream_t* const istream);
+											   read_stream_t* const istream);
 
 static error_code_t convertNotifKeyDBChecksumToHost(response_t* const response,
-															read_stream_t* const istream);
+													read_stream_t* const istream);
 	
 static error_code_t convertMsgHeaderToHost(msg_header_t* const header,
-												   read_stream_t* const istream);
+										   read_stream_t* const istream);
 
-static error_code_t checkMsgHeader(session_t* const curr_session,
-								   response_reason_t* const result,
+static error_code_t checkMsgHeader(response_reason_t* const result,
+								   session_t* const curr_session,
 								   const msg_header_t* const header,
 								   const uint32_t exp_msg_length);
 
-static error_code_t sendMsg(write_stream_t* const ostream,
-									const uint32_t tls_id);
+static error_code_t sendMsg(const write_stream_t* const ostream,
+							const tls_des_t tls_id);
 
 static error_code_t receiveMsg(read_stream_t* const istream,
-									   const uint8_t timeout,
-									   const uint32_t tls_id);
+							   const uint8_t timeout,
+							   const tls_des_t tls_id);
 
 static void getMyEtcsIDExp(uint32_t* const my_etcs_id_exp);
 
@@ -150,7 +150,10 @@ static void getMyEtcsIDExp(uint32_t* const my_etcs_id_exp);
  * LOCAL FUNCTION DECLARATIONS
  *****************************************************************************/
 
-static void getMyEtcsIDExp(uint32_t* const my_etcs_id_exp)
+static void getMyEtcsIDExp         /** @return error code */
+(
+	uint32_t* const my_etcs_id_exp /**< [out] */
+	)
 {
 	ASSERT(my_etcs_id_exp != NULL, E_NULL_POINTER);
 	/* TBD decide how to get my id */
@@ -162,11 +165,17 @@ static void getMyEtcsIDExp(uint32_t* const my_etcs_id_exp)
 	return;
 }
 
-static error_code_t buildMsgHeader(write_stream_t* const ostream,
-										   const uint32_t msg_length,
-										   const uint32_t msg_type,
-										   const uint32_t peer_etcs_id_exp,
-										   const uint32_t trans_num)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t buildMsgHeader   /** @return error code */
+(
+	write_stream_t* const ostream,   /**< [out] */
+	const uint32_t msg_length,       /**< [in] */
+	const uint32_t msg_type,         /**< [in] */
+	const uint32_t peer_etcs_id_exp, /**< [in] */
+	const uint32_t trans_num         /**< [in] */
+										)
 {
 
 	msg_header_t header;
@@ -197,8 +206,14 @@ static error_code_t buildMsgHeader(write_stream_t* const ostream,
 	return(SUCCESS);
 }
 
-static error_code_t convertMsgHeaderToHost(msg_header_t* const header,
-										   read_stream_t* const istream)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t convertMsgHeaderToHost /** @return error code */
+(
+	msg_header_t* const header,            /**< [out] */
+	read_stream_t* const istream           /**< [in] */ 
+	)
 {
 	ASSERT((istream != NULL) && (header != NULL), E_NULL_POINTER);
 
@@ -213,9 +228,14 @@ static error_code_t convertMsgHeaderToHost(msg_header_t* const header,
     return(SUCCESS);
 }
 
-
-static error_code_t convertCmdAddKeysToHost(request_t* const request,
-													read_stream_t* const istream)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t convertCmdAddKeysToHost /** @return error code */
+(
+	request_t* const request,               /**< [out] */
+	read_stream_t* const istream            /**< [in] */
+	)
 {
 	uint32_t i = 0U;
 	uint32_t j = 0U;
@@ -244,8 +264,14 @@ static error_code_t convertCmdAddKeysToHost(request_t* const request,
 	return(SUCCESS);
 }
 
-static error_code_t convertCmdDeleteKeysToHost(request_t* const request,
-													   read_stream_t* const istream)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t convertCmdDeleteKeysToHost /** @return error code */
+(
+	request_t* const request,                  /**< [out] */
+	read_stream_t* const istream               /**< [in] */
+	)
 {
 	uint32_t i = 0U;
 
@@ -262,8 +288,14 @@ static error_code_t convertCmdDeleteKeysToHost(request_t* const request,
 	return(SUCCESS);
 }
 
-static error_code_t convertCmdUpKeyValiditiesToHost(request_t* const request,
-															read_stream_t* const istream)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t convertCmdUpKeyValiditiesToHost /** @return error code */
+(
+	request_t* const request,                       /**< [out] */
+	read_stream_t* const istream                    /**< [in] */
+	)
 {
 	uint32_t i = 0U;
 	
@@ -283,8 +315,14 @@ static error_code_t convertCmdUpKeyValiditiesToHost(request_t* const request,
 }
 
 
-static error_code_t convertCmdUpKeyEntitiesToHost(request_t* const request,
-														  read_stream_t* const istream)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t convertCmdUpKeyEntitiesToHost /** @return error code */
+(
+	request_t* const request,                     /**< [out] */
+	read_stream_t* const istream	              /**< [in] */
+	)
 {
 	uint32_t i = 0U;
 	uint32_t j = 0U;
@@ -308,9 +346,14 @@ static error_code_t convertCmdUpKeyEntitiesToHost(request_t* const request,
 	return(SUCCESS);
 }
 
-
-static error_code_t convertCmdReqKeyOperationToHost(request_t* const request,
-															read_stream_t* const istream)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t convertCmdReqKeyOperationToHost /** @return error code */
+(
+	request_t* const request,                       /**< [out] */
+	read_stream_t* const istream                    /**< [in] */
+	)
 {
 	ASSERT((istream != NULL) && (request != NULL), E_NULL_POINTER);
 
@@ -330,9 +373,14 @@ static error_code_t convertCmdReqKeyOperationToHost(request_t* const request,
 	return(SUCCESS);
 }
 
-
-static error_code_t convertNotifKeyUpdateStatusToHost(request_t* const request,
-															  read_stream_t* const istream)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t convertNotifKeyUpdateStatusToHost /** @return error code */
+(
+	request_t* const request,                         /**< [out] */
+	read_stream_t* const istream                      /**< [in] */
+	)
 {
 	ASSERT((istream != NULL) && (request != NULL), E_NULL_POINTER);
 
@@ -344,8 +392,14 @@ static error_code_t convertNotifKeyUpdateStatusToHost(request_t* const request,
 }
 
 
-static error_code_t convertNotifKeyOpReqRcvdToHost(response_t* const response,
-														   read_stream_t* const istream)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t convertNotifKeyOpReqRcvdToHost /** @return error code */
+(
+	response_t* const response,                    /**< [out] */
+	read_stream_t* const istream                   /**< [in] */
+	)
 {
 	ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
 
@@ -355,8 +409,14 @@ static error_code_t convertNotifKeyOpReqRcvdToHost(response_t* const response,
 }
 
 
-static error_code_t convertNotifSessionInitToHost(notif_session_init_t* const response,
-														  read_stream_t* const istream)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t convertNotifSessionInitToHost /** @return error code */
+(
+	notif_session_init_t* const response,         /**< [out] */
+	read_stream_t* const istream		          /**< [in] */  
+	)
 {
 	ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
 
@@ -367,8 +427,14 @@ static error_code_t convertNotifSessionInitToHost(notif_session_init_t* const re
 	return(SUCCESS);
 }
 
-static error_code_t convertNotifResponseToHost(response_t* const response,
-													   read_stream_t* const istream)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t convertNotifResponseToHost /** @return error code */
+(
+	response_t* const response,                /**< [out] */
+	read_stream_t* const istream               /**< [in] */ 
+	)
 {
 	ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
 
@@ -380,8 +446,14 @@ static error_code_t convertNotifResponseToHost(response_t* const response,
 	return(SUCCESS);
 }
 
-static error_code_t convertNotifKeyDBChecksumToHost(response_t* const response,
-															read_stream_t* const istream)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t convertNotifKeyDBChecksumToHost /** @return error code */
+(
+	response_t* const response,                     /**< [out] */
+	read_stream_t* const istream                    /**< [in] */ 
+	)
 {
 	ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
 
@@ -390,10 +462,16 @@ static error_code_t convertNotifKeyDBChecksumToHost(response_t* const response,
 	return(SUCCESS);
 }
 
-static error_code_t checkMsgHeader(session_t* const curr_session,
-								   response_reason_t* const result,
-								   const msg_header_t* const header,
-								   const uint32_t exp_msg_length)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t checkMsgHeader    /** @return error code */
+(
+	response_reason_t* const result,  /**< [out] */   
+	session_t* const curr_session,    /**< [in/out] */
+	const msg_header_t* const header, /**< [in] */ 	  
+	const uint32_t exp_msg_length     /**< [in] */     
+	)
 {
 	uint32_t my_etcs_id_exp = 0U;
 
@@ -470,16 +548,22 @@ static error_code_t checkMsgHeader(session_t* const curr_session,
 	return(SUCCESS);
 }
 
-/* ostream shall be already initialized */
-static error_code_t sendMsg(write_stream_t* const ostream,
-									const uint32_t tls_id)
+
+/**
+ * Some useful Doxygen comment. ostream shall be already initialized
+ */
+static error_code_t sendMsg              /** @return error code */
+(
+	const write_stream_t* const ostream, /**< [in] */   
+	const tls_des_t tls_id				 /**< [in] */
+	)
 {
 	
 	uint32_t bytes_sent = 0U;
 	
 	ASSERT(ostream != NULL, E_NULL_POINTER);
 	
-	if(sendTLS(&bytes_sent, ostream->buffer, ostream->curSize, tls_id) != SUCCESS)
+	if(sendTLS(&bytes_sent, ostream->buffer, ostream->curSize, tls_id) != TLS_SUCCESS)
 	{
 		return(ERROR);
 	}
@@ -510,9 +594,15 @@ static error_code_t sendMsg(write_stream_t* const ostream,
 	return(SUCCESS);
 }
 
-static error_code_t evaluateRemainingTime(uint8_t *const remaining_time,
-												  const struct timeval start_time,
-												  const uint8_t exp_timeout)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t evaluateRemainingTime /** @return error code */
+(
+	uint8_t *const remaining_time,        /**< [out] */   
+	const struct timeval start_time,      /**< [in] */   
+	const uint8_t exp_timeout             /**< [in] */   
+	)
 {
 	struct timeval curr_time;
 	uint64_t elapsed_time;
@@ -544,17 +634,22 @@ static error_code_t evaluateRemainingTime(uint8_t *const remaining_time,
 }
 
 /* istream shall be already initialized */
-static error_code_t receiveMsg(read_stream_t* const istream,
-									   const uint8_t timeout,
-									   const uint32_t tls_id)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t receiveMsg     /** @return error code */
+(
+	read_stream_t* const istream,  /**< [out] */   
+	const uint8_t timeout,         /**< [in] */   
+	const tls_des_t tls_id         /**< [in] */   
+	)
 {
 
 	ASSERT(istream != NULL, E_NULL_POINTER);
 
 	debug_print("Waiting time = %d\n", timeout);
 	
-	if(receiveTLS(&istream->validBytes, istream->buffer,
-				  (uint32_t)MSG_MAX_SIZE, timeout, tls_id) != SUCCESS)
+	if(receiveTLS(&istream->validBytes, istream->buffer, (uint32_t)MSG_MAX_SIZE, timeout, tls_id) != TLS_SUCCESS)
 	{
 		return(ERROR);
 	}
@@ -577,7 +672,13 @@ static error_code_t receiveMsg(read_stream_t* const istream,
 	return(SUCCESS);
 }
 
-static error_code_t sendNotifSessionInit(session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t sendNotifSessionInit /** @return error code */
+(
+	const session_t* const curr_session  /**< [in] */   
+	)
 {
 	uint32_t msg_length = 0U;
 	uint8_t tmp_num_version = NUM_VERSION;
@@ -608,16 +709,23 @@ static error_code_t sendNotifSessionInit(session_t* const curr_session)
 	return(SUCCESS);
 }
 
-static error_code_t sendNotifSessionEnd(session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t sendNotifSessionEnd /** @return error code */
+(
+	const session_t* const curr_session /**< [in] */   
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
+	uint32_t tmp_trans_num = 0U;
 	
 	ASSERT(curr_session != NULL, E_NULL_POINTER);
 
 	/* the transaction number for end
 	   session shall be set to 0 */
-	curr_session->transNum = 0U;
+	tmp_trans_num = 0U;
 
 	/* prepare output buffer */
 	initWriteStream(&ostream);
@@ -626,7 +734,7 @@ static error_code_t sendNotifSessionEnd(session_t* const curr_session)
 	msg_length = NOTIF_END_UPDATE_SIZE;
 
 	buildMsgHeader(&ostream, msg_length, NOTIF_END_OF_UPDATE,
-				   curr_session->peerEtcsIDExp, curr_session->transNum);
+				   curr_session->peerEtcsIDExp, tmp_trans_num);
 
 	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
 	{
@@ -636,9 +744,15 @@ static error_code_t sendNotifSessionEnd(session_t* const curr_session)
 	return(SUCCESS);
 }
 
-static error_code_t waitForSessionInit(notif_session_init_t* const payload,
-									   response_reason_t* const result,
-									   session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t waitForSessionInit   /** @return error code */
+(
+	notif_session_init_t* const payload, /**< [out] */   
+	response_reason_t* const result,     /**< [out] */   
+	session_t* const curr_session        /**< [in/out] */   
+	)
 {
 	read_stream_t input_msg;
 	msg_header_t header;
@@ -668,7 +782,7 @@ static error_code_t waitForSessionInit(notif_session_init_t* const payload,
 
 	convertMsgHeaderToHost(&header, &input_msg);
 
-	checkMsgHeader(curr_session, result, &header, input_msg.validBytes);
+	checkMsgHeader(result, curr_session, &header, input_msg.validBytes);
 	
 	if( *result != RESP_OK)
 	{
@@ -694,8 +808,14 @@ static error_code_t waitForSessionInit(notif_session_init_t* const payload,
 	return(SUCCESS);
 }
 
-static error_code_t sendCmdAddKeys(const request_t* const request,
-								   const session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t sendCmdAddKeys       /** @return error code */
+(
+	const request_t* const request,      /**< [in] */     
+	const session_t* const curr_session  /**< [in] */   
+	)
 {
 	uint32_t i = 0U;
 	uint32_t j = 0U;
@@ -752,8 +872,14 @@ static error_code_t sendCmdAddKeys(const request_t* const request,
 }
 
 
-static error_code_t sendCmdDeleteKeys(const request_t* const request,
-											  const session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t sendCmdDeleteKeys    /** @return error code */
+(
+	const request_t* const request,      /**< [in] */     
+	const session_t* const curr_session  /**< [in] */     
+	)
 {
 	uint32_t msg_length = 0U;
 	uint32_t i = 0U;
@@ -788,8 +914,14 @@ static error_code_t sendCmdDeleteKeys(const request_t* const request,
 	return(SUCCESS);
 }
 
-static error_code_t sendCmdUpKeyValidities(const request_t* const request,
-												   const session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t sendCmdUpKeyValidities /** @return error code */
+(
+	const request_t* const request,        /**< [in] */
+	const session_t* const curr_session	   /**< [in] */
+	)
 {
 	uint32_t msg_length = 0U;
 	uint32_t i = 0U;
@@ -827,8 +959,14 @@ static error_code_t sendCmdUpKeyValidities(const request_t* const request,
 }
 
 
-static error_code_t sendCmdUpKeyEntities(const request_t* const request,
-												 const session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t sendCmdUpKeyEntities /** @return error code */
+(
+	const request_t* const request,      /**< [in] */
+	const session_t* const curr_session  /**< [in] */
+	)
 {
 	uint32_t i = 0U;
 	uint32_t j = 0U;
@@ -878,7 +1016,13 @@ static error_code_t sendCmdUpKeyEntities(const request_t* const request,
 }
 
 
-static error_code_t sendCmdDeleteAllKeys(const session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t sendCmdDeleteAllKeys /** @return error code */
+(
+	const session_t* const curr_session  /**< [in] */     
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -904,7 +1048,13 @@ static error_code_t sendCmdDeleteAllKeys(const session_t* const curr_session)
 	return(SUCCESS);
 }
 
-static error_code_t sendCmdReqKeyDBChecksum(const session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t sendCmdReqKeyDBChecksum /** @return error code */
+(
+	const session_t* const curr_session     /**< [in] */     
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -929,8 +1079,14 @@ static error_code_t sendCmdReqKeyDBChecksum(const session_t* const curr_session)
 }
 
 
-static error_code_t sendCmdReqKeyOperation(const request_t* const request,
-												   const session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t sendCmdReqKeyOperation /** @return error code */
+(
+	const request_t* const request,        /**< [in] */     
+	const session_t* const curr_session    /**< [in] */
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -971,8 +1127,14 @@ static error_code_t sendCmdReqKeyOperation(const request_t* const request,
 	return(SUCCESS);
 }
 
-static error_code_t sendNotifKeyUpdateStatus(const request_t* const request,
-											 const session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t sendNotifKeyUpdateStatus /** @return error code */
+(
+	const request_t* const request,          /**< [in] */     
+	const session_t* const curr_session      /**< [in] */     
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1007,8 +1169,14 @@ static error_code_t sendNotifKeyUpdateStatus(const request_t* const request,
  * PUBLIC FUNCTION DECLARATIONS
  *****************************************************************************/
 
-error_code_t sendNotifKeyDBChecksum(const response_t* const response,
-											const session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t sendNotifKeyDBChecksum     /** @return error code */
+(
+	const response_t* const response,   /**< [in] */     
+	const session_t* const curr_session /**< [in] */     
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1035,8 +1203,14 @@ error_code_t sendNotifKeyDBChecksum(const response_t* const response,
 	return(SUCCESS);
 }
 
-error_code_t sendNotifResponse(const response_t* const response,
-							   const session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t sendNotifResponse          /** @return error code */
+(
+	const response_t* const response,   /**< [in] */     
+	const session_t* const curr_session /**< [in] */     
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1071,8 +1245,14 @@ error_code_t sendNotifResponse(const response_t* const response,
 	return(SUCCESS);
 }
 
-error_code_t sendNotifKeyOpReqRcvd(const response_t* const response,
-										   const session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t sendNotifKeyOpReqRcvd      /** @return error code */
+(
+	const response_t* const response,   /**< [in] */
+	const session_t* const curr_session	/**< [in] */
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1099,7 +1279,13 @@ error_code_t sendNotifKeyOpReqRcvd(const response_t* const response,
 	return(SUCCESS);
 }
 
-error_code_t sendNotifAckKeyUpStatus(const session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t sendNotifAckKeyUpStatus    /** @return error code */
+(
+	const session_t* const curr_session /**< [in] */     
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1123,14 +1309,20 @@ error_code_t sendNotifAckKeyUpStatus(const session_t* const curr_session)
 	return(SUCCESS);
 }
 
-error_code_t startClientTLS(uint32_t* const tls_id,
-							const char* const ca_cert,
-							const char *const key,
-							const char* const cert)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t startClientTLS    /** @return error code */
+(
+	tls_des_t* const tls_id,   /**< [out] */     
+	const char* const ca_cert, /**< [in] */     
+	const char *const key,     /**< [in] */     
+	const char* const cert     /**< [in] */     
+	)
 {
 	ASSERT(tls_id != NULL, E_NULL_POINTER);
 
-	if(initClientTLS(tls_id, ca_cert, key, cert) != SUCCESS)
+	if(initClientTLS(tls_id, ca_cert, key, cert) != TLS_SUCCESS)
 	{
 		return(ERROR);
 	}
@@ -1138,12 +1330,18 @@ error_code_t startClientTLS(uint32_t* const tls_id,
 	return(SUCCESS);
 }
 
-error_code_t connectToTLSServer(const uint32_t const tls_id,
-										const char* const r_ip)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t connectToTLSServer    /** @return error code */
+(
+	const tls_des_t const tls_id,  /**< [in] */     
+	const char* const server_ip    /**< [in] */     
+	)
 {
-	ASSERT(r_ip != NULL, E_NULL_POINTER);
+	ASSERT(server_ip != NULL, E_NULL_POINTER);
 
-	if(connectTLS(tls_id, r_ip, DEFAULT_PORT) != SUCCESS)
+	if(connectTLS(tls_id, server_ip, SS137_TCP_PORT) != TLS_SUCCESS)
 	{
 		return(ERROR);
 	}
@@ -1151,11 +1349,17 @@ error_code_t connectToTLSServer(const uint32_t const tls_id,
 	return(SUCCESS);
 }
 
-error_code_t startServerTLS(const char* const ca_cert,
-							const char *const key,
-							const char* const cert)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t startServerTLS    /** @return error code */
+(
+	const char* const ca_cert, /**< [in] */     
+	const char *const key,     /**< [in] */     
+	const char* const cert     /**< [in] */     
+	)
 {
-	if(initServerTLS(DEFAULT_PORT, ca_cert, key, cert) != SUCCESS)
+	if(initServerTLS(SS137_TCP_PORT, ca_cert, key, cert) != TLS_SUCCESS)
 	{
 		return(ERROR);
 	}
@@ -1163,26 +1367,35 @@ error_code_t startServerTLS(const char* const ca_cert,
 	return(SUCCESS);
 }
 
-error_code_t listenForTLSClient(uint32_t* const tls_id, uint32_t* const client_ip)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t listenForTLSClient /** @return error code */
+(
+	tls_des_t* const tls_id,    /**< [out] */     
+	char* const client_ip       /**< [out] */     
+	)
 {
 	ASSERT(tls_id != NULL, E_NULL_POINTER);
 
-	if(acceptTLS(tls_id, client_ip) != SUCCESS)
+	if(acceptTLS(tls_id, client_ip) != TLS_SUCCESS)
 	{
 		err_print("Error occurred in acceptTLS()\n");
 		return(ERROR);
 	}
 
-	debug_print("Connection from client %d.%d.%d.%d\n",
-				(*client_ip) & (0xFF),
-				(*client_ip >> 8) & (0xFF),
-				(*client_ip >> 16) & (0xFF),
-				(*client_ip >> 24) & (0xFF));
+	debug_print("Connection from client %s\n", client_ip);
 
 	return(SUCCESS);
 }
 
-error_code_t closeTLSConnection(const uint32_t tls_id)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t closeTLSConnection /** @return error code */
+(
+	const tls_des_t tls_id      /**< [in] */     
+	)
 {
 
 	closeTLS(tls_id);
@@ -1191,8 +1404,14 @@ error_code_t closeTLSConnection(const uint32_t tls_id)
 }
 
 
-error_code_t waitForRequestFromKMCToKMAC(request_t* const request,
-										 session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t waitForRequestFromKMCToKMAC /** @return error code */
+(
+	request_t* const request,            /**< [out] */     
+	session_t* const curr_session        /**< [in/out] */     
+	)
 {
 	read_stream_t input_msg;
 	msg_header_t header;
@@ -1213,7 +1432,7 @@ error_code_t waitForRequestFromKMCToKMAC(request_t* const request,
 	
 	convertMsgHeaderToHost(&header, &input_msg);
 	
-	checkMsgHeader(curr_session, &result, &header, input_msg.validBytes);
+	checkMsgHeader(&result, curr_session, &header, input_msg.validBytes);
 
 	if(result != RESP_OK)
 	{
@@ -1265,8 +1484,14 @@ error_code_t waitForRequestFromKMCToKMAC(request_t* const request,
 }
 
 
-error_code_t waitForRequestFromKMCToKMC(request_t* const request,
-										session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t waitForRequestFromKMCToKMC /** @return error code */
+(
+	request_t* const request,           /**< [out] */     
+	session_t* const curr_session       /**< [in/out] */     
+	)
 {
 	read_stream_t input_msg;
 	msg_header_t header;
@@ -1287,7 +1512,7 @@ error_code_t waitForRequestFromKMCToKMC(request_t* const request,
 
 	convertMsgHeaderToHost(&header, &input_msg);
 	
-	checkMsgHeader(curr_session, &result, &header, input_msg.validBytes);
+	checkMsgHeader(&result, curr_session, &header, input_msg.validBytes);
 
 	if(result != RESP_OK)
 	{
@@ -1327,7 +1552,6 @@ error_code_t waitForRequestFromKMCToKMC(request_t* const request,
 		request->msgType = header.msgType;
 		break;
 	default:
-		/* tbd add send of notif init */
 		err_print("Unexpected msg type received: rec %d\n", header.msgType);
 		error_response.notifPayload.reason = RESP_NOT_SUPPORTED;
 		sendNotifResponse(&error_response, curr_session);
@@ -1337,10 +1561,16 @@ error_code_t waitForRequestFromKMCToKMC(request_t* const request,
 	return(SUCCESS);
 }
 
-static error_code_t waitForResponse(response_t* const response,
-									session_t* const curr_session,
-									response_reason_t* const result,
-									const msg_type_t exp_msg_type)
+/**
+ * Some useful Doxygen comment
+ */
+static error_code_t waitForResponse  /** @return error code */
+(
+	response_t* const response,      /**< [out] */       
+	response_reason_t* const result, /**< [out] */       
+	session_t* const curr_session,   /**< [in/out] */       
+	const msg_type_t exp_msg_type    /**< [in] */       
+	)
 {
 	msg_header_t header;
 	read_stream_t input_msg;
@@ -1358,7 +1588,7 @@ static error_code_t waitForResponse(response_t* const response,
 
 	convertMsgHeaderToHost(&header, &input_msg);
 
-	checkMsgHeader(curr_session, result, &header, input_msg.validBytes);
+	checkMsgHeader(result, curr_session, &header, input_msg.validBytes);
 	
 	if(*result != RESP_OK)
 	{
@@ -1399,9 +1629,15 @@ static error_code_t waitForResponse(response_t* const response,
 	return(SUCCESS);
 }
 
-error_code_t initAppSession(session_t* const curr_session,
-									const uint8_t app_timeout,
-									const uint32_t peer_etcs_id_exp)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t initAppSession          /** @return error code */  
+(
+	session_t* const curr_session,   /**< [in/out] */       
+	const uint8_t app_timeout,       /**< [in] */       
+	const uint32_t peer_etcs_id_exp  /**< [in] */       
+	)
 {
 	notif_session_init_t response;
 	response_reason_t result = RESP_OK;
@@ -1455,7 +1691,13 @@ error_code_t initAppSession(session_t* const curr_session,
 }
 
 /* this function send the notif session end message */
-error_code_t endAppSession(session_t* const curr_session)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t endAppSession              /** @return error code */  
+(
+	const session_t* const curr_session /**< [in] */       
+	)
 {
 
 	if(sendNotifSessionEnd(curr_session) != SUCCESS)
@@ -1467,9 +1709,15 @@ error_code_t endAppSession(session_t* const curr_session)
 }
 
 
-error_code_t performAddKeysOperation(session_t* const curr_session,
-									 response_t* const response,
-									 const request_t* const request)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t performAddKeysOperation /** @return error code */  
+(
+	response_t* const response,      /**< [out] */          
+	session_t* const curr_session,   /**< [int/out] */          
+	const request_t* const request   /**< [in] */     
+	)
 {
 	msg_type_t exp_msg_type = NOTIF_RESPONSE;
 	response_reason_t result;
@@ -1486,7 +1734,7 @@ error_code_t performAddKeysOperation(session_t* const curr_session,
 		return(ERROR);
 	}
 
-	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	if(waitForResponse(response,  &result, curr_session, exp_msg_type) != SUCCESS)
 	{
 		return(ERROR);
 	}
@@ -1511,9 +1759,15 @@ error_code_t performAddKeysOperation(session_t* const curr_session,
 	return(SUCCESS);
 }
 
-error_code_t performDelKeysOperation(session_t* const curr_session,
-									 response_t* const response,
-									 const request_t* const request)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t performDelKeysOperation /** @return error code */  
+(
+	response_t* const response,      /**< [out] */          
+	session_t* const curr_session,   /**< [int/out] */          
+	const request_t* const request   /**< [in] */     
+	)
 {
 	msg_type_t exp_msg_type = NOTIF_RESPONSE;
 	response_reason_t result;
@@ -1530,7 +1784,7 @@ error_code_t performDelKeysOperation(session_t* const curr_session,
 		return(ERROR);
 	}
 
-	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
 	{
 		return(ERROR);
 	}
@@ -1555,9 +1809,15 @@ error_code_t performDelKeysOperation(session_t* const curr_session,
 	return(SUCCESS);
 }
 
-error_code_t performUpKeyValiditiesOperation(session_t* const curr_session,
-													 response_t* const response,
-													 const request_t* const request)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t performUpKeyValiditiesOperation /** @return error code */  
+(
+	response_t* const response,              /**< [out] */          
+	session_t* const curr_session,           /**< [int/out] */          
+	const request_t* const request           /**< [in] */     
+	)
 {
 	msg_type_t exp_msg_type = NOTIF_RESPONSE;
 	response_reason_t result;
@@ -1574,7 +1834,7 @@ error_code_t performUpKeyValiditiesOperation(session_t* const curr_session,
 		return(ERROR);
 	}
 
-	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
 	{
 		return(ERROR);
 	}
@@ -1599,9 +1859,15 @@ error_code_t performUpKeyValiditiesOperation(session_t* const curr_session,
 	return(SUCCESS);
 }
 
-error_code_t performUpKeyEntitiesOperation(session_t* const curr_session,
-										   response_t* const response,
-										   const request_t* const request)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t performUpKeyEntitiesOperation  /** @return error code */  
+(
+	response_t* const response,             /**< [out] */          
+	session_t* const curr_session,          /**< [int/out] */          
+	const request_t* const request          /**< [in] */     
+	)
 {
 	msg_type_t exp_msg_type = NOTIF_RESPONSE;
 	response_reason_t result;
@@ -1618,7 +1884,7 @@ error_code_t performUpKeyEntitiesOperation(session_t* const curr_session,
 		return(ERROR);
 	}
 
-	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
 	{
 		return(ERROR);
 	}
@@ -1644,8 +1910,14 @@ error_code_t performUpKeyEntitiesOperation(session_t* const curr_session,
 }
 
 
-error_code_t performDeleteAllKeysOperation(session_t* const curr_session,
-										   response_t* const response)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t performDeleteAllKeysOperation /** @return error code */  
+( 
+	response_t* const response,            /**< [out] */          
+	session_t* const curr_session          /**< [int/out] */          
+	)
 {
 	msg_type_t exp_msg_type = NOTIF_RESPONSE;
 	response_reason_t result;
@@ -1661,7 +1933,7 @@ error_code_t performDeleteAllKeysOperation(session_t* const curr_session,
 		return(ERROR);
 	}
 
-	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
 	{
 		return(ERROR);
 	}
@@ -1680,8 +1952,14 @@ error_code_t performDeleteAllKeysOperation(session_t* const curr_session,
 	return(SUCCESS);
 }
 
-error_code_t performReqDBChecksumOperation(session_t* const curr_session,
-										   response_t* const response)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t performReqDBChecksumOperation /** @return error code */  
+(
+	response_t* const response,            /**< [out] */          
+	session_t* const curr_session          /**< [int/out] */          
+	)
 {
 	msg_type_t exp_msg_type = NOTIF_KEY_DB_CHECKSUM;
 	response_reason_t result;
@@ -1697,7 +1975,7 @@ error_code_t performReqDBChecksumOperation(session_t* const curr_session,
 		return(ERROR);
 	}
 
-	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
 	{
 		return(ERROR);
 	}
@@ -1716,9 +1994,15 @@ error_code_t performReqDBChecksumOperation(session_t* const curr_session,
 	return(SUCCESS);
 }
 
-error_code_t performReqKeyOperation(session_t* const curr_session,
-									response_t* const response,
-									const request_t* const request)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t performReqKeyOperation /** @return error code */  
+(
+	response_t* const response,     /**< [out] */          
+	session_t* const curr_session,  /**< [int/out] */          
+	const request_t* const request  /**< [in] */     
+	)
 {
 	msg_type_t exp_msg_type = NOTIF_KEY_OPERATION_REQ_RCVD;
 	response_reason_t result;
@@ -1734,7 +2018,7 @@ error_code_t performReqKeyOperation(session_t* const curr_session,
 		return(ERROR);
 	}
 
-	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
 	{
 		return(ERROR);
 	}
@@ -1753,9 +2037,15 @@ error_code_t performReqKeyOperation(session_t* const curr_session,
 	return(SUCCESS);
 }
 
-error_code_t performNotifKeyUpStatusOperation(session_t* const curr_session,
-											  response_t* const response,
-											  const request_t* const request)
+/**
+ * Some useful Doxygen comment
+ */
+error_code_t performNotifKeyUpStatusOperation /** @return error code */  
+(
+	response_t* const response,               /**< [out] */          
+	session_t* const curr_session,            /**< [int/out] */          
+	const request_t* const request            /**< [in] */     
+	)
 {
 	msg_type_t exp_msg_type = NOTIF_ACK_KEY_UPDATE_STATUS;
 	response_reason_t result;
@@ -1771,7 +2061,7 @@ error_code_t performNotifKeyUpStatusOperation(session_t* const curr_session,
 		return(ERROR);
 	}
 
-	if(waitForResponse(response, curr_session, &result, exp_msg_type) != SUCCESS)
+	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
 	{
 		return(ERROR);
 	}

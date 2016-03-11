@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 #include "common.h"
 #include "net_utils.h"
@@ -91,7 +92,7 @@ int main(int argc, char *argv[])
 		for(i = 0U; i < atoi(argv[2]); i++)
 		{
 			memmove(request.kStructList, &k_struct, sizeof(k_struct_t));
-			if(performAddKeysOperation(&session, &response, &request) != SUCCESS)
+			if(performAddKeysOperation(&response, &session, &request) != SUCCESS)
 			{
 				break;
 			}
@@ -100,7 +101,7 @@ int main(int argc, char *argv[])
 			debug_print("----------------------------------------------------------\n");
 			
 			memmove(request.kIdentList, &k_ident, sizeof(k_ident_t));
-			if(performDelKeysOperation(&session, &response, &request)!= SUCCESS)
+			if(performDelKeysOperation(&response, &session, &request)!= SUCCESS)
 			{
 				break;
 			}
@@ -109,7 +110,7 @@ int main(int argc, char *argv[])
 			debug_print("----------------------------------------------------------\n");
 			
 			memmove(request.kValidityList, &k_validity, sizeof(k_validity_t));
-			if(performUpKeyValiditiesOperation(&session, &response, &request)!= SUCCESS)
+			if(performUpKeyValiditiesOperation(&response, &session, &request)!= SUCCESS)
 			{
 				break;
 			}
@@ -118,7 +119,7 @@ int main(int argc, char *argv[])
 			debug_print("----------------------------------------------------------\n");
 			
 			memmove(request.kEntityList, &k_entity, sizeof(k_entity_t));
-			if(performUpKeyEntitiesOperation(&session, &response, &request)!= SUCCESS)
+			if(performUpKeyEntitiesOperation(&response, &session, &request)!= SUCCESS)
 			{
 				break;
 			}
@@ -126,7 +127,7 @@ int main(int argc, char *argv[])
 			debug_print("----------------------------------------------------------\n");
 			debug_print("----------------------------------------------------------\n");
 			
-			if(performDeleteAllKeysOperation(&session,	&response)!= SUCCESS)
+			if(performDeleteAllKeysOperation(&response, &session)!= SUCCESS)
 			{
 				break;
 			}
@@ -134,7 +135,7 @@ int main(int argc, char *argv[])
 			debug_print("----------------------------------------------------------\n");
 			debug_print("----------------------------------------------------------\n");
 			
-			if(performReqDBChecksumOperation(&session,	&response)!= SUCCESS)
+			if(performReqDBChecksumOperation(&response, &session)!= SUCCESS)
 			{
 				break;
 			}

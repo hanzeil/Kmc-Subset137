@@ -20,21 +20,26 @@
 #ifndef KMC_SS137_LIB_H_
 #define KMC_SS137_LIB_H_
 
-#include <sys/time.h>
-
 /*****************************************************************************
  * DEFINES
  ******************************************************************************/
 
-#define DEFAULT_PORT (7912U)
+#define SS137_TCP_PORT (7912U)
 
 /*****************************************************************************
  * TYPEDEFS
  *****************************************************************************/
+typedef enum
+{
+	SUCCESS = 0,
+	ERROR   = 1
+}error_code_t;
+
+typedef uint32_t tls_des_t;
 
 typedef struct
 {
-	uint32_t       tlsID;
+	tls_des_t      tlsID;
 	uint8_t        appTimeout;	
 	uint32_t       transNum;
 	uint16_t       peerSeqNum;
@@ -47,7 +52,7 @@ typedef struct
  *****************************************************************************/
 
 /* tls function */
-error_code_t startClientTLS(uint32_t* const tls_id,
+error_code_t startClientTLS(tls_des_t* const tls_id,
 							const char* const ca_cert,
 							const char *const key,
 							const char* const cert);
@@ -56,12 +61,13 @@ error_code_t startServerTLS(const char* const ca_cert,
 							const char *const key,
 							const char* const cert);
 
-error_code_t connectToTLSServer(const uint32_t const tls_id,
-								const char* const r_ip);
+error_code_t connectToTLSServer(const tls_des_t const tls_id,
+								const char* const server_ip);
 
-error_code_t listenForTLSClient(uint32_t* const tls_id, uint32_t* const client_ip);
+error_code_t listenForTLSClient(tls_des_t* const tls_id,
+								char* const client_ip);
 
-error_code_t closeTLSConnection(const uint32_t tls_id);
+error_code_t closeTLSConnection(const tls_des_t tls_id);
 
 /* receive */
 error_code_t waitForRequestFromKMCToKMC(request_t* const request,
@@ -77,36 +83,36 @@ error_code_t initAppSession(session_t* const curr_session,
 							const uint8_t app_timeout,
 							const uint32_t peer_etcs_id_exp);
 
-error_code_t endAppSession(session_t* const curr_session);
+error_code_t endAppSession(const session_t* const curr_session);
 
-error_code_t performAddKeysOperation(session_t* const curr_session,
-									 response_t* const response,
+error_code_t performAddKeysOperation(response_t* const response,
+									 session_t* const curr_session,
 									 const request_t* const request);
 
-error_code_t performDelKeysOperation(session_t* const curr_session,
-									 response_t* const response,
+error_code_t performDelKeysOperation(response_t* const response,
+									 session_t* const curr_session,
 									 const request_t* const request);
 
-error_code_t performUpKeyValiditiesOperation(session_t* const curr_session,
-											 response_t* const response,
+error_code_t performUpKeyValiditiesOperation(response_t* const response,
+											 session_t* const curr_session,
 											 const request_t* const request);
 
-error_code_t performUpKeyEntitiesOperation(session_t* const curr_session,
-										   response_t* const response,
+error_code_t performUpKeyEntitiesOperation(response_t* const response,
+										   session_t* const curr_session,
 										   const request_t* const request);
 
-error_code_t performDeleteAllKeysOperation(session_t* const curr_session,
-										   response_t* const response);
+error_code_t performDeleteAllKeysOperation(response_t* const response,
+										   session_t* const curr_session);
 
-error_code_t performReqDBChecksumOperation(session_t* const curr_session,
-										   response_t* const response);
+error_code_t performReqDBChecksumOperation(response_t* const response,
+										   session_t* const curr_session);
 
-error_code_t performNotifKeyUpStatusOperation(session_t* const curr_session,
-											  response_t* const response,
+error_code_t performNotifKeyUpStatusOperation(response_t* const response,
+											  session_t* const curr_session,
 											  const request_t* const request);
 
-error_code_t performReqKeyOperation(session_t* const curr_session,
-									response_t* const response,
+error_code_t performReqKeyOperation(response_t* const response,
+									session_t* const curr_session,
 									const request_t* const request);
 
 

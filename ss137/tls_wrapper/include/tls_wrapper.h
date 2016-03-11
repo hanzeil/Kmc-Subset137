@@ -24,50 +24,52 @@
 * DEFINES
 ******************************************************************************/
 
-#define TIME_TO_MSEC(x) (x*1000U)
-
 /*****************************************************************************
  * TYPEDEFS
  *****************************************************************************/
-
-typedef uint32_t tls_des_t;
+typedef enum
+{
+	TLS_SUCCESS = 0,
+	TLS_ERROR   = 1
+} tls_error_code_t;
 
 /*****************************************************************************
  * PUBLIC FUNCTION PROTOTYPES
  *****************************************************************************/
 
 /* client */
-error_code_t initClientTLS(tls_des_t* const tls_id,
+tls_error_code_t initClientTLS(uint32_t* const tls_id,
 						   const char* const ca_cert,
 						   const char *const key,
 						   const char* const cert);
 
-error_code_t connectTLS(const tls_des_t tls_id,
-				   const char* const r_ip,
-				   const uint16_t r_port);
+tls_error_code_t connectTLS(const uint32_t tls_id,
+						const char* const server_ip,
+						const uint16_t remote_port);
 	
 /* server */
-error_code_t initServerTLS(const uint16_t l_port,
+tls_error_code_t initServerTLS(const uint16_t l_port,
 						   const char* const ca_cert,
 						   const char *const key,
 						   const char* const cert);
 
-error_code_t acceptTLS(tls_des_t* const tls_id, uint32_t* const client_ip);
+tls_error_code_t acceptTLS(uint32_t* const tls_id,
+					   char* const client_ip);
 
 /* common */
-error_code_t closeTLS(const tls_des_t tls_id);
+tls_error_code_t closeTLS(const uint32_t tls_id);
 
-error_code_t sendTLS(uint32_t* const bytes_sent,
-				const uint8_t* const buf,
-				const uint32_t buf_len,
-				const tls_des_t tls_id);
+tls_error_code_t sendTLS(uint32_t* const bytes_sent,
+					 const uint8_t* const buf,
+					 const uint32_t buf_len,
+					 const uint32_t tls_id);
 
-error_code_t receiveTLS(uint32_t* const bytes_received,
-							uint8_t* const buf,
-							const uint32_t buf_len,
-							const uint8_t timeout,
-							const tls_des_t tls_id);
+tls_error_code_t receiveTLS(uint32_t* const bytes_received,
+						uint8_t* const buf,
+						const uint32_t buf_len,
+						const uint8_t timeout,
+						const uint32_t tls_id);
 
-error_code_t exitTLS(void);
+tls_error_code_t exitTLS(void);
 
 #endif /* KMC_TLS_WRAPPER_H_ */

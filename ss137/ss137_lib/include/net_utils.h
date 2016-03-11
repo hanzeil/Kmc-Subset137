@@ -47,11 +47,11 @@ typedef struct
  * PUBLIC FUNCTION PROTOTYPES
  *****************************************************************************/
 
-int32_t netToHost8(uint8_t* const var, const uint32_t len, read_stream_t* istream);
+int32_t netToHost8(uint8_t* const var, const uint32_t len, read_stream_t* const istream);
 
-int32_t netToHost16(uint16_t* const var, read_stream_t* istream);
+int32_t netToHost16(uint16_t* const var, read_stream_t* const istream);
 
-int32_t netToHost32(uint32_t* const var, read_stream_t* istream);
+int32_t netToHost32(uint32_t* const var, read_stream_t* const istream);
 
 int32_t hostToNet8(write_stream_t* const ostream, const uint8_t* const var, const uint32_t len);
 

@@ -39,12 +39,6 @@ typedef enum
 	E_INVALID_PARAM    = 3
 } assert_error_code_t;
 
-typedef enum
-{
-	SUCCESS = 0,
-	ERROR   = 1
-}error_code_t;
-
 #ifndef FALSE
 #define FALSE 0
 #endif

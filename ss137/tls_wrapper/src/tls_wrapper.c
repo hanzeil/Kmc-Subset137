@@ -54,7 +54,8 @@
 #define VERIFY_DEPTH         (1U)
 /**@}*/
 
-#define SEC_TO_MSEC(x) (1000U*x)
+#define SEC_TO_MSEC(x) ((x)*1000U)
+
 /*****************************************************************************
  * TYPEDEFS
  *****************************************************************************/
@@ -86,17 +87,17 @@ static int32_t listen_sock = -1;
 /**
  * Some useful Doxygen comment for getPeerCertificate
  */
-static error_code_t getPeerCertificate(SSL* ssl);
+static tls_error_code_t getPeerCertificate(SSL* ssl);
 
 /**
  * Some useful Doxygen comment for initTLS
  */
-static error_code_t initTLS(const char* const ca_cert, const char *const key, const char* const cert);
+static tls_error_code_t initTLS(const char* const ca_cert, const char *const key, const char* const cert);
 
 /**
  * Some useful Doxygen comment findTLSDes
  */
-static error_code_t findTLSDes(tls_des_t * const tls_id);
+static tls_error_code_t findTLSDes(uint32_t * const tls_id);
 
 /*****************************************************************************
  * LOCAL FUNCTION DECLARATIONS
@@ -105,10 +106,10 @@ static error_code_t findTLSDes(tls_des_t * const tls_id);
 /**
  * Some useful Doxygen comment findTLSDes
  */
-static error_code_t findTLSDes
+static tls_error_code_t findTLSDes
 (
-		tls_des_t * const tls_id /**< [in] SSL context */
-)
+	uint32_t * const tls_id /**< [in] SSL context */
+	)
 {
 	uint32_t i = 0U;
 	bool_t found = FALSE;
@@ -129,16 +130,16 @@ static error_code_t findTLSDes
 	if(found == FALSE)
 	{
 		err_print("No valid tls descriptor.\n");
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
-	return(SUCCESS);
+	return(TLS_SUCCESS);
 }
 
 /**
- * Some useful Doxygen comment getPeerCertificate
+ * Some useful Doxygen comment
  */
-static error_code_t getPeerCertificate
+static tls_error_code_t getPeerCertificate
 (
 	SSL* ssl /**< [in] SSL context */
 	)
@@ -169,12 +170,12 @@ static error_code_t getPeerCertificate
 		err_print("The SSL peer does not have certificate.\n");
 	}
 	
-	return(SUCCESS);
+	return(TLS_SUCCESS);
 }
 
-static error_code_t initTLS(const char* const ca_cert,
-							const char *const key,
-							const char* const cert)
+static tls_error_code_t initTLS(const char* const ca_cert,
+								const char *const key,
+								const char* const cert)
 {
 	const SSL_METHOD * meth = NULL;
 
@@ -197,7 +198,7 @@ static error_code_t initTLS(const char* const ca_cert,
 	if( meth == NULL )
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 	
 	/* Create an SSL_CTX structure */
@@ -205,28 +206,28 @@ static error_code_t initTLS(const char* const ca_cert,
 	if( meth == NULL )
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
  
 	/* Load the certificate into the SSL_CTX structure */
 	if(!SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM))
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 	
 	/* Load the private-key corresponding to the certificate */
 	if(!SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM))
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 	
 	/* Check if the certificate and private-key matches */
 	if (!SSL_CTX_check_private_key(ctx))
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
  
 	/* Load the RSA CA certificate into the SSL_CTX structure */
@@ -235,7 +236,7 @@ static error_code_t initTLS(const char* const ca_cert,
 	if(!SSL_CTX_load_verify_locations(ctx, ca_cert, NULL))
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
  
 	/* Set flag in context to require peer certificate */
@@ -245,7 +246,7 @@ static error_code_t initTLS(const char* const ca_cert,
 	/* set the verify depth*/
 	SSL_CTX_set_verify_depth(ctx,VERIFY_DEPTH);
 
-	return(SUCCESS);
+	return(TLS_SUCCESS);
 
 }
 
@@ -254,10 +255,10 @@ static error_code_t initTLS(const char* const ca_cert,
  *****************************************************************************/
 
 /* client */
-error_code_t initClientTLS(tls_des_t* const tls_id,
-						   const char* const ca_cert,
-						   const char *const key,
-						   const char* const cert)
+tls_error_code_t initClientTLS(uint32_t* const tls_id,
+							   const char* const ca_cert,
+							   const char *const key,
+							   const char* const cert)
 {
 	int32_t tmp_sock = -1;
 
@@ -267,89 +268,92 @@ error_code_t initClientTLS(tls_des_t* const tls_id,
 
 	ASSERT(tls_id != NULL, E_NULL_POINTER);
 
-	if(initTLS(ca_cert, key, cert) != SUCCESS)
+	if(initTLS(ca_cert, key, cert) != TLS_SUCCESS)
 	{
 		err_print("Error during initTLS()\n");
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
-	/* TBD add error check */
-	findTLSDes(tls_id);
+	if(findTLSDes(tls_id) != TLS_SUCCESS)
+	{
+		return(TLS_ERROR);
+	}
 	
 	tmp_sock = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(tmp_sock == -1)
 	{
 		err_print("Error opening socket\n");
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
 	tls_descriptors[*tls_id].socket = tmp_sock;
 
-	return(SUCCESS);
+	return(TLS_SUCCESS);
 }
 
-error_code_t connectTLS(const tls_des_t tls_id, const char* const r_ip, const uint16_t r_port)
+tls_error_code_t connectTLS(const uint32_t tls_id,
+							const char* const server_ip,
+							const uint16_t server_port)
 {
 	struct sockaddr_in server_addr;
 	SSL* ssl = NULL;
 
 	ASSERT(tls_id < MAX_TLS_DES, E_INVALID_PARAM);
-	ASSERT(r_ip != NULL, E_NULL_POINTER);
-	
+	ASSERT(server_ip != NULL, E_NULL_POINTER);
+
 	memset (&server_addr, '\0', sizeof(server_addr));
 	server_addr.sin_family      = AF_INET;
- 	server_addr.sin_port        = htons(r_port);       /* Server Port number */
-	server_addr.sin_addr.s_addr = inet_addr(r_ip);     /* Server IP */
+ 	server_addr.sin_port        = htons(server_port);     /* Server Port number */
+	server_addr.sin_addr.s_addr = inet_addr(server_ip);        /* Server IP */
 
 	/* Establish a TCP/IP connection to the SSL client */
 	if(connect(tls_descriptors[tls_id].socket, (struct sockaddr*) &server_addr, sizeof(server_addr)) == -1)
 	{
-		err_print("Error on connect to server (%s:%d)\n", r_ip, r_port);
-		return(ERROR);
+		err_print("Error on connect to server (%s:%d)\n", server_ip, server_port);
+		return(TLS_ERROR);
 	}
 
 	ssl = SSL_new (ctx);
 	if(ssl == NULL)
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
 	if(!SSL_set_cipher_list(ssl, allowed_ciphers))
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
  
 	/* Assign the socket into the SSL structure (SSL and socket without BIO) */
 	if(!SSL_set_fd(ssl, tls_descriptors[tls_id].socket))
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
 	/* Perform SSL Handshake on the SSL client */
 	if(!SSL_connect(ssl))
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
-	/* TBD add check on cipher ???*/
 	debug_print("SSL connection using %s\n", SSL_get_cipher (ssl));
 
 	tls_descriptors[tls_id].ssl_ptr = ssl;
 
 	getPeerCertificate(ssl);
 		
-	return(SUCCESS);
+	return(TLS_SUCCESS);
 }
 
 /* server */
-error_code_t initServerTLS(const uint16_t l_port,
-						   const char* const ca_cert,
-						   const char *const key,
-						   const char* const cert)
+tls_error_code_t initServerTLS(const uint16_t l_port,
+							   const char* const ca_cert,
+							   const char *const key,
+							   const char* const cert)
 {
 	struct sockaddr_in sa_serv;
 	
@@ -357,17 +361,17 @@ error_code_t initServerTLS(const uint16_t l_port,
 	ASSERT(key != NULL, E_NULL_POINTER);
 	ASSERT(cert != NULL, E_NULL_POINTER);
 
-	if(initTLS(ca_cert, key, cert) != SUCCESS)
+	if(initTLS(ca_cert, key, cert) != TLS_SUCCESS)
 	{
 		err_print("Error during initTLS()\n");
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 	
 	listen_sock = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(listen_sock == -1)
 	{
 		err_print("Error opening socket\n");
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
 	memset (&sa_serv, '\0', sizeof(sa_serv));
@@ -378,20 +382,20 @@ error_code_t initServerTLS(const uint16_t l_port,
 	if(bind(listen_sock, (struct sockaddr*)&sa_serv, sizeof(sa_serv)) == -1)
 	{
 		err_print("Error on binding port %d\n", l_port);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
 	if(listen(listen_sock, 5) == -1)
 	{
 		err_print("Error on listen call\n");
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
-	return(SUCCESS);
+	return(TLS_SUCCESS);
 }
 
-error_code_t acceptTLS(tls_des_t* const tls_id,
-						   uint32_t* const client_ip)
+tls_error_code_t acceptTLS(uint32_t* const tls_id,
+						   char* const client_ip)
 {
 	struct sockaddr_in sa_cli;
 	int32_t  client_len = 0;
@@ -402,7 +406,10 @@ error_code_t acceptTLS(tls_des_t* const tls_id,
 	ASSERT(tls_id != NULL, E_NULL_POINTER);
 	ASSERT(client_ip != NULL, E_NULL_POINTER);
 
-	findTLSDes(tls_id);
+	if(findTLSDes(tls_id) != TLS_SUCCESS)
+	{
+		return(TLS_ERROR);
+	}
 
 	client_len = sizeof(sa_cli);
 
@@ -412,36 +419,39 @@ error_code_t acceptTLS(tls_des_t* const tls_id,
 	if(client_sock == -1)
 	{
 		err_print("Cannot accept connection\n");
-		return(ERROR);
+		return(TLS_ERROR);
 	}
-
-	*client_ip = sa_cli.sin_addr.s_addr;
+	
+	sprintf(client_ip,"%d.%d.%d.%d", (sa_cli.sin_addr.s_addr & 0xFF),
+			(sa_cli.sin_addr.s_addr >> 8 & 0xFF),
+			(sa_cli.sin_addr.s_addr >> 16 & 0xFF),
+			(sa_cli.sin_addr.s_addr >> 24 & 0xFF));
 	
 	ssl = SSL_new(ctx);
 	if(ssl == NULL)
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
  	if(!SSL_set_cipher_list(ssl, allowed_ciphers))
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
  
 	/* Assign the socket into the SSL structure (SSL and socket without BIO) */
 	if(!SSL_set_fd(ssl, client_sock))
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
 	/* Perform SSL Handshake on the SSL server */
 	if(!SSL_accept(ssl))
  	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
 	getPeerCertificate(ssl);
@@ -449,17 +459,17 @@ error_code_t acceptTLS(tls_des_t* const tls_id,
 	tls_descriptors[*tls_id].ssl_ptr = ssl;
 	tls_descriptors[*tls_id].socket = client_sock;
 
-	return(SUCCESS);
+	return(TLS_SUCCESS);
 }
 
-error_code_t closeTLS(const tls_des_t tls_id)
+tls_error_code_t closeTLS(const uint32_t tls_id)
 {
 	ASSERT(tls_id < MAX_TLS_DES, E_INVALID_PARAM);
 	
 	if(!SSL_shutdown(tls_descriptors[tls_id].ssl_ptr))
  	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
 	/* Free the SSL structure
@@ -471,13 +481,13 @@ error_code_t closeTLS(const tls_des_t tls_id)
 	tls_descriptors[tls_id].ssl_ptr = NULL;
 	tls_descriptors[tls_id].in_use = FALSE;
 
-	return(SUCCESS);
+	return(TLS_SUCCESS);
 }
 
-error_code_t sendTLS(uint32_t* const bytes_sent,
+tls_error_code_t sendTLS(uint32_t* const bytes_sent,
 						 const uint8_t* const buf,
 						 const uint32_t buf_len,
-						 const tls_des_t tls_id)
+						 const uint32_t tls_id)
 {
 	ASSERT(tls_id < MAX_TLS_DES, E_INVALID_PARAM);
 	ASSERT(bytes_sent != NULL, E_NULL_POINTER);
@@ -488,17 +498,17 @@ error_code_t sendTLS(uint32_t* const bytes_sent,
 	if(*bytes_sent <= 0)
 	{
 		ERR_print_errors_fp(stderr);
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 
-	return(SUCCESS);
+	return(TLS_SUCCESS);
 }
 
-error_code_t receiveTLS(uint32_t* const bytes_received,
+tls_error_code_t receiveTLS(uint32_t* const bytes_received,
 							uint8_t* const buf,
 							const uint32_t buf_len,
 							const uint8_t timeout,
-							const tls_des_t tls_id)
+							const uint32_t tls_id)
 {
 	struct pollfd handles[1];
     const nfds_t n_handles = 1;
@@ -516,19 +526,19 @@ error_code_t receiveTLS(uint32_t* const bytes_received,
 	if(n_active < 0)
 	{
 		err_print("poll() error\n");
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 	else if( n_active == 0)
 	{
 		warning_print("Timeout expired\n");
-		return(ERROR);
+		return(TLS_ERROR);
 	}
 	else
 	{
 		if ( ( handles[0].revents & POLLERR & POLLHUP & POLLNVAL ) != 0 )
 		{
 			err_print("poll() error\n");
-			return(ERROR);
+			return(TLS_ERROR);
 		}
 		else if (handles[0].revents & POLLIN)
 		{
@@ -539,16 +549,16 @@ error_code_t receiveTLS(uint32_t* const bytes_received,
 				if(SSL_get_shutdown(tls_descriptors[tls_id].ssl_ptr) == SSL_RECEIVED_SHUTDOWN)
 				{
 					warning_print("TLS shutdown received from the other peer\n");
-					return(ERROR);
+					return(TLS_ERROR);
 				}
 			}
 		}
 	}
 	
-	return(SUCCESS);
+	return(TLS_SUCCESS);
 }
 
-error_code_t exitTLS(void)
+tls_error_code_t exitTLS(void)
 {
 	/* Free the SSL_CTX structure */
 	SSL_CTX_free(ctx);
@@ -560,6 +570,6 @@ error_code_t exitTLS(void)
 		close(listen_sock);
 	}
 	
-	return(SUCCESS);
+	return(TLS_SUCCESS);
 }
 

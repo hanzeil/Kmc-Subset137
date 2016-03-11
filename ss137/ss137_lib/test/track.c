@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include "common.h"
 #include "net_utils.h"
@@ -23,7 +24,7 @@ int main(int argc, char *argv[])
 	bool_t stop = FALSE;
 	response_t response;
 	uint32_t i = 0U;
-	uint32_t client_ip = 0U;
+	char client_ip[20];
 
 	memset(&session, 0, sizeof(session_t));
 
@@ -34,7 +35,7 @@ int main(int argc, char *argv[])
 
 	while(1)
 	{
-		if(listenForTLSClient(&session.tlsID, &client_ip) != SUCCESS)
+		if(listenForTLSClient(&session.tlsID, client_ip) != SUCCESS)
 		{
 			exit(1);
 		}
@@ -94,6 +95,7 @@ int main(int argc, char *argv[])
 				if(sendNotifResponse(&response, &session) != SUCCESS)
 				{
 					stop = TRUE;
+					debug_print("End of update message received \n");
 					continue;
 				}
 

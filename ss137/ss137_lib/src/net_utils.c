@@ -131,7 +131,7 @@ int32_t hostToNet8(write_stream_t* const ostream,
 }
 
 int32_t netToHost32(uint32_t* const var,
-					read_stream_t* istream)
+					read_stream_t* const istream)
 {
 	uint32_t new_var = 0U;
 	uint32_t len = 0U;
@@ -151,7 +151,7 @@ int32_t netToHost32(uint32_t* const var,
 }
 
 int32_t netToHost16(uint16_t* const var,
-					read_stream_t* istream)
+					read_stream_t* const istream)
 {
 	uint16_t new_var = 0U;
 	uint32_t len = 0U;
@@ -173,7 +173,7 @@ int32_t netToHost16(uint16_t* const var,
 
 int32_t netToHost8(uint8_t* const var,
 				   const uint32_t len,
-				   read_stream_t* istream)
+				   read_stream_t* const istream)
 
 {
 	ASSERT((istream != NULL) && (var != NULL), E_NULL_POINTER);
