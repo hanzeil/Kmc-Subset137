@@ -32,7 +32,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-#include "common.h" 
+#include "utils.h" 
 #include "tls_wrapper.h"
 
 
@@ -84,19 +84,10 @@ static int32_t listen_sock = -1;
  * FUNCTION PROTOTYPES
  *****************************************************************************/
 
-/**
- * Some useful Doxygen comment for getPeerCertificate
- */
 static tls_error_code_t getPeerCertificate(SSL* ssl);
 
-/**
- * Some useful Doxygen comment for initTLS
- */
 static tls_error_code_t initTLS(const char* const ca_cert, const char *const key, const char* const cert);
 
-/**
- * Some useful Doxygen comment findTLSDes
- */
 static tls_error_code_t findTLSDes(uint32_t * const tls_id);
 
 /*****************************************************************************
@@ -153,14 +144,14 @@ static tls_error_code_t getPeerCertificate
 	
 	if (peer_cert != NULL)
 	{
-		debug_print("Peer certificate\n");
+		log_print("Peer certificate\n");
 		
 		str = X509_NAME_oneline(X509_get_subject_name(peer_cert),0,0);
-		debug_print("\t subject: %s\n", str);
+		log_print("\t subject: %s\n", str);
 		free (str);
 		
 		str = X509_NAME_oneline(X509_get_issuer_name(peer_cert),0,0);
-		debug_print("\t issuer: %s\n", str);
+		log_print("\t issuer: %s\n", str);
 		free(str);
 		
 		X509_free (peer_cert);
@@ -183,9 +174,9 @@ static tls_error_code_t initTLS(const char* const ca_cert,
 	ASSERT(key != NULL, E_NULL_POINTER);
 	ASSERT(cert != NULL, E_NULL_POINTER);
 
-	debug_print("CA cert:  %s\n", ca_cert);
-	debug_print("RSA Key:  %s\n", key);
-	debug_print("RSA Cert: %s\n", cert);
+	log_print("CA cert:  %s\n", ca_cert);
+	log_print("RSA Key:  %s\n", key);
+	log_print("RSA Cert: %s\n", cert);
 	
 	/* Load encryption & hashing algorithms for the SSL program */
 	SSL_library_init();
@@ -340,7 +331,7 @@ tls_error_code_t connectTLS(const uint32_t tls_id,
 		return(TLS_ERROR);
 	}
 
-	debug_print("SSL connection using %s\n", SSL_get_cipher (ssl));
+	log_print("SSL connection using %s\n", SSL_get_cipher (ssl));
 
 	tls_descriptors[tls_id].ssl_ptr = ssl;
 

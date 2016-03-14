@@ -6,14 +6,14 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#include "common.h"
+#include "utils.h"
 #include "net_utils.h"
 #include "msg_definitions.h"
 #include "ss137_lib.h"
 
 #define RSA_CA_CERT    "./cert/cacert.pem"   /**< RSA root CA Certificate pathname */
-#define RSA_CERT       "./cert/kmc_cert.pem"     /**< RSA Certificate pathname */
-#define RSA_KEY        "./cert/kmc_key.pem"      /**< RSA Key pathname */
+#define RSA_CERT       "./cert/kmc_cert.pem" /**< RSA Certificate pathname */
+#define RSA_KEY        "./cert/kmc_key.pem"  /**< RSA Key pathname */
 
 k_struct_t k_struct =
 {
@@ -65,6 +65,17 @@ k_entity_t k_entity =
 		}
 };
 
+ss137_lib_configuration_t ss137_lib_config =
+{
+	RSA_CA_CERT,
+	RSA_KEY,
+	RSA_CERT,
+	{0xAABBCCDD, "127.0.0.1"},
+	{
+		{0x11223344, "127.0.0.1"}
+	}
+};
+
 int main(int argc, char *argv[])
 {
 	session_t session;
@@ -74,11 +85,11 @@ int main(int argc, char *argv[])
 
 	memset(&session, 0, sizeof(session_t));
 
-	startClientTLS(&session.tlsID, RSA_CA_CERT, RSA_KEY, RSA_CERT);
+	startClientTLS(&session.tlsID);
 
-	connectToTLSServer(session.tlsID, argv[1]);
+	connectToTLSServer(session.tlsID, ss137_lib_config.kmsEntitiesId[0].ip);
 
-	if(initAppSession(&session, 0x3, 0x11223344) != SUCCESS)
+	if(initAppSession(&session, 0x3, ss137_lib_config.kmsEntitiesId[0].expEtcsId) != SUCCESS)
 	{
 		closeTLSConnection(session.tlsID);
 	}
@@ -86,62 +97,62 @@ int main(int argc, char *argv[])
 	{
 
 		request.reqNum = 1;
-		debug_print("----------------------------------------------------------\n");
-		debug_print("----------------------------------------------------------\n");
+		log_print("----------------------------------------------------------\n");
+		log_print("----------------------------------------------------------\n");
 		/* first transaction */
-		for(i = 0U; i < atoi(argv[2]); i++)
+		for(i = 0U; i < atoi(argv[1]); i++)
 		{
 			memmove(request.kStructList, &k_struct, sizeof(k_struct_t));
-			if(performAddKeysOperation(&response, &session, &request) != SUCCESS)
+			if(performAddKeysTransaction(&response, &session, &request) != SUCCESS)
 			{
 				break;
 			}
 
-			debug_print("----------------------------------------------------------\n");
-			debug_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
 			
 			memmove(request.kIdentList, &k_ident, sizeof(k_ident_t));
-			if(performDelKeysOperation(&response, &session, &request)!= SUCCESS)
+			if(performDelKeysTransaction(&response, &session, &request)!= SUCCESS)
 			{
 				break;
 			}
 
-			debug_print("----------------------------------------------------------\n");
-			debug_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
 			
 			memmove(request.kValidityList, &k_validity, sizeof(k_validity_t));
-			if(performUpKeyValiditiesOperation(&response, &session, &request)!= SUCCESS)
+			if(performUpKeyValiditiesTransaction(&response, &session, &request)!= SUCCESS)
 			{
 				break;
 			}
 
-			debug_print("----------------------------------------------------------\n");
-			debug_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
 			
 			memmove(request.kEntityList, &k_entity, sizeof(k_entity_t));
-			if(performUpKeyEntitiesOperation(&response, &session, &request)!= SUCCESS)
+			if(performUpKeyEntitiesTransaction(&response, &session, &request)!= SUCCESS)
 			{
 				break;
 			}
 
-			debug_print("----------------------------------------------------------\n");
-			debug_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
 			
-			if(performDeleteAllKeysOperation(&response, &session)!= SUCCESS)
+			if(performDeleteAllKeysTransaction(&response, &session)!= SUCCESS)
 			{
 				break;
 			}
 
-			debug_print("----------------------------------------------------------\n");
-			debug_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
 			
-			if(performReqDBChecksumOperation(&response, &session)!= SUCCESS)
+			if(performReqDBChecksumTransaction(&response, &session)!= SUCCESS)
 			{
 				break;
 			}
 
-			debug_print("----------------------------------------------------------\n");
-			debug_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
 			
 		}
 		

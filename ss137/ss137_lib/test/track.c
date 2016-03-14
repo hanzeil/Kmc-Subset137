@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#include "common.h"
+#include "utils.h"
 #include "net_utils.h"
 #include "msg_definitions.h"
 #include "ss137_lib.h"
@@ -16,6 +16,16 @@
 #define RSA_KEY        "./cert/track_key.pem"      /**< RSA Key pathname */
 #define RSA_CERT       "./cert/track_cert.pem"     /**< RSA Certificate pathname */
 
+ss137_lib_configuration_t ss137_lib_config =
+{
+	RSA_CA_CERT,
+	RSA_KEY,
+	RSA_CERT,
+	{0x11223344, "127.0.0.1"},
+	{
+		{0xAABBCCDD, "127.0.0.1"}
+	}
+};
 
 int main(int argc, char *argv[])
 {
@@ -24,31 +34,30 @@ int main(int argc, char *argv[])
 	bool_t stop = FALSE;
 	response_t response;
 	uint32_t i = 0U;
-	char client_ip[20];
+	uint32_t exp_etcs_id = 0U;
 
 	memset(&session, 0, sizeof(session_t));
 
-	if(startServerTLS(RSA_CA_CERT, RSA_KEY, RSA_CERT) != SUCCESS)
+	if(startServerTLS() != SUCCESS)
 	{
 		exit(1);
 	}
 
 	while(1)
 	{
-		if(listenForTLSClient(&session.tlsID, client_ip) != SUCCESS)
+		if(listenForTLSClient(&session.tlsID, &exp_etcs_id) != SUCCESS)
 		{
 			exit(1);
 		}
 
-		if(initAppSession(&session, 0xff, 0xAABBCCDD) != SUCCESS)
+		if(initAppSession(&session, 0xff, exp_etcs_id) != SUCCESS)
 		{
 			closeTLSConnection(session.tlsID);
 			continue;
 		}
 
-		debug_print("----------------------------------------------------------\n");
-		debug_print("----------------------------------------------------------\n");
-
+		log_print("----------------------------------------------------------\n");
+		log_print("----------------------------------------------------------\n");
 
 		while(stop == FALSE)
 		{
@@ -58,7 +67,7 @@ int main(int argc, char *argv[])
 				continue;
 			}
 
-			debug_print("Request received : %d\n", request.msgType);
+			log_print("Request received : %d\n", request.msgType);
 
 			switch(request.msgType)
 			{
@@ -95,7 +104,7 @@ int main(int argc, char *argv[])
 				if(sendNotifResponse(&response, &session) != SUCCESS)
 				{
 					stop = TRUE;
-					debug_print("End of update message received \n");
+					log_print("End of update message received \n");
 					continue;
 				}
 
@@ -103,8 +112,8 @@ int main(int argc, char *argv[])
 			}
 			session.transNum++;
 			request.reqNum = 0;
-			debug_print("----------------------------------------------------------\n");
-			debug_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
 			sleep(2U);
 		}
 		stop = FALSE;

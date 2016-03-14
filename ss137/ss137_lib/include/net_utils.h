@@ -47,21 +47,21 @@ typedef struct
  * PUBLIC FUNCTION PROTOTYPES
  *****************************************************************************/
 
-int32_t netToHost8(uint8_t* const var, const uint32_t len, read_stream_t* const istream);
+error_code_t netToHost8(uint8_t* const var, const uint32_t len, read_stream_t* const istream);
 
-int32_t netToHost16(uint16_t* const var, read_stream_t* const istream);
+error_code_t netToHost16(uint16_t* const var, read_stream_t* const istream);
 
-int32_t netToHost32(uint32_t* const var, read_stream_t* const istream);
+error_code_t netToHost32(uint32_t* const var, read_stream_t* const istream);
 
-int32_t hostToNet8(write_stream_t* const ostream, const uint8_t* const var, const uint32_t len);
+error_code_t hostToNet8(write_stream_t* const ostream, const uint8_t* const var, const uint32_t len);
 
-int32_t hostToNet16(write_stream_t* const ostream, const uint16_t var);
+error_code_t hostToNet16(write_stream_t* const ostream, const uint16_t var);
 
-int32_t hostToNet32(write_stream_t* const ostream, const uint32_t var);
+error_code_t hostToNet32(write_stream_t* const ostream, const uint32_t var);
 
-int32_t initWriteStream(write_stream_t *const ostream);
+error_code_t initWriteStream(write_stream_t *const ostream);
 
-int32_t initReadStream(read_stream_t *const istream);
+error_code_t initReadStream(read_stream_t *const istream);
 
 
 #endif /* KMC_NET_UTILS_H_ */

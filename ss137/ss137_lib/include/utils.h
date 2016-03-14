@@ -4,10 +4,10 @@
 #include <libgen.h>
 
 #ifdef __DEBUG__
-#define debug_print(...) \
-	do { fprintf(stdout, "DEBUG [%s: %d]\t", basename(__FILE__), __LINE__); fprintf(stdout, ##__VA_ARGS__); fflush(NULL); } while (0)
+#define log_print(...) \
+	do { fprintf(stdout, "LOG [%s: %d]\t", basename(__FILE__), __LINE__); fprintf(stdout, ##__VA_ARGS__); fflush(NULL); } while (0)
 #else
-#define debug_print(fmt, ...)
+#define log_print(fmt, ...)
 #endif					       
 
 #define err_print(...) \
@@ -31,6 +31,12 @@
 /* ------------------------------------------------------------------------------- */
 
 typedef int32_t bool_t;
+
+typedef enum
+{
+	SUCCESS = 0,
+	ERROR   = 1
+}error_code_t;
 
 typedef enum
 {
