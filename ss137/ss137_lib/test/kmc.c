@@ -85,80 +85,84 @@ int main(int argc, char *argv[])
 
 	memset(&session, 0, sizeof(session_t));
 
-	startClientTLS(&session.tlsID);
-
-	connectToTLSServer(session.tlsID, ss137_lib_config.kmsEntitiesId[0].ip);
-
-	if(initAppSession(&session, 0x3, ss137_lib_config.kmsEntitiesId[0].expEtcsId) != SUCCESS)
+	if(startClientTLS(&session.tlsID) != SUCCESS)
 	{
-		closeTLSConnection(session.tlsID);
+		exit(1);
 	}
-	else
+
+	if(connectToTLSServer(session.tlsID, ss137_lib_config.kmsEntitiesId[0].ip) == SUCCESS)
 	{
-
-		request.reqNum = 1;
-		log_print("----------------------------------------------------------\n");
-		log_print("----------------------------------------------------------\n");
-		/* first transaction */
-		for(i = 0U; i < atoi(argv[1]); i++)
+		if(initAppSession(&session, 0x3, ss137_lib_config.kmsEntitiesId[0].expEtcsId) != SUCCESS)
 		{
-			memmove(request.kStructList, &k_struct, sizeof(k_struct_t));
-			if(performAddKeysTransaction(&response, &session, &request) != SUCCESS)
-			{
-				break;
-			}
-
-			log_print("----------------------------------------------------------\n");
-			log_print("----------------------------------------------------------\n");
-			
-			memmove(request.kIdentList, &k_ident, sizeof(k_ident_t));
-			if(performDelKeysTransaction(&response, &session, &request)!= SUCCESS)
-			{
-				break;
-			}
-
-			log_print("----------------------------------------------------------\n");
-			log_print("----------------------------------------------------------\n");
-			
-			memmove(request.kValidityList, &k_validity, sizeof(k_validity_t));
-			if(performUpKeyValiditiesTransaction(&response, &session, &request)!= SUCCESS)
-			{
-				break;
-			}
-
-			log_print("----------------------------------------------------------\n");
-			log_print("----------------------------------------------------------\n");
-			
-			memmove(request.kEntityList, &k_entity, sizeof(k_entity_t));
-			if(performUpKeyEntitiesTransaction(&response, &session, &request)!= SUCCESS)
-			{
-				break;
-			}
-
-			log_print("----------------------------------------------------------\n");
-			log_print("----------------------------------------------------------\n");
-			
-			if(performDeleteAllKeysTransaction(&response, &session)!= SUCCESS)
-			{
-				break;
-			}
-
-			log_print("----------------------------------------------------------\n");
-			log_print("----------------------------------------------------------\n");
-			
-			if(performReqDBChecksumTransaction(&response, &session)!= SUCCESS)
-			{
-				break;
-			}
-
-			log_print("----------------------------------------------------------\n");
-			log_print("----------------------------------------------------------\n");
-			
+			closeTLSConnection(session.tlsID);
 		}
+		else
+		{
+			
+			request.reqNum = 1;
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			/* first transaction */
+			for(i = 0U; i < atoi(argv[1]); i++)
+			{
+				memmove(request.kStructList, &k_struct, sizeof(k_struct_t));
+				if(performAddKeysTransaction(&response, &session, &request) != SUCCESS)
+				{
+					break;
+				}
+
+				log_print("----------------------------------------------------------\n");
+				log_print("----------------------------------------------------------\n");
+			
+				memmove(request.kIdentList, &k_ident, sizeof(k_ident_t));
+				if(performDelKeysTransaction(&response, &session, &request)!= SUCCESS)
+				{
+					break;
+				}
+
+				log_print("----------------------------------------------------------\n");
+				log_print("----------------------------------------------------------\n");
+			
+				memmove(request.kValidityList, &k_validity, sizeof(k_validity_t));
+				if(performUpKeyValiditiesTransaction(&response, &session, &request)!= SUCCESS)
+				{
+					break;
+				}
+
+				log_print("----------------------------------------------------------\n");
+				log_print("----------------------------------------------------------\n");
+			
+				memmove(request.kEntityList, &k_entity, sizeof(k_entity_t));
+				if(performUpKeyEntitiesTransaction(&response, &session, &request)!= SUCCESS)
+				{
+					break;
+				}
+
+				log_print("----------------------------------------------------------\n");
+				log_print("----------------------------------------------------------\n");
+			
+				if(performDeleteAllKeysTransaction(&response, &session)!= SUCCESS)
+				{
+					break;
+				}
+
+				log_print("----------------------------------------------------------\n");
+				log_print("----------------------------------------------------------\n");
+			
+				if(performReqDBChecksumTransaction(&response, &session)!= SUCCESS)
+				{
+					break;
+				}
+
+				log_print("----------------------------------------------------------\n");
+				log_print("----------------------------------------------------------\n");
+			
+			}
 		
-		endAppSession(&session);
+			endAppSession(&session);
 		
-		closeTLSConnection(session.tlsID);
+			closeTLSConnection(session.tlsID);
+		}
 	}
 	
 	return(0);

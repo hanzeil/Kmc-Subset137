@@ -31,6 +31,11 @@
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
+#include <openssl/x509_vfy.h>
 
 #include "utils.h" 
 #include "tls_wrapper.h"
@@ -39,14 +44,6 @@
 /*****************************************************************************
  * DEFINES
  ******************************************************************************/
-
-/** @name RSA-related pathnames
- **@{*/
-#define RSA_CLIENT_CERT       "cert.pem"     /**< RSA Client Certificate pathname */
-#define RSA_CLIENT_KEY        "key.pem"      /**< RSA Client Key pathname */
-#define RSA_CLIENT_CA_CERT    "cacert.pem"   /**< RSA Client root CA Certificate full pathname */
-/**@}*/
-
 
 /** @name SSL tuning
  **@{*/
@@ -90,6 +87,8 @@ static tls_error_code_t initTLS(const char* const ca_cert, const char *const key
 
 static tls_error_code_t findTLSDes(uint32_t * const tls_id);
 
+static tls_error_code_t verifyLocalCertificate(const char* const ca_cert, const char* const cert);
+
 /*****************************************************************************
  * LOCAL FUNCTION DECLARATIONS
  *****************************************************************************/
@@ -127,6 +126,66 @@ static tls_error_code_t findTLSDes
 	return(TLS_SUCCESS);
 }
 
+static tls_error_code_t verifyLocalCertificate(const char* const ca_cert,
+											   const char* const cert)
+{
+	
+  X509  *cert_str = NULL;
+  X509_STORE  *store = NULL;
+  X509_STORE_CTX *vrfy_ctx = NULL;
+  BIO   *certbio = NULL;
+  int ret;
+
+  certbio = BIO_new(BIO_s_file());
+  OpenSSL_add_all_algorithms();
+  ERR_load_BIO_strings();
+  
+  if ((store = X509_STORE_new()) == 0)
+  {
+	  log_print("Error creating X509 store object\n");
+	  return(TLS_ERROR);
+  }
+
+  vrfy_ctx = X509_STORE_CTX_new();
+
+  /* load the certificate and ca certificate in memory */
+  ret = BIO_read_filename(certbio, cert);
+  if ((cert_str = PEM_read_bio_X509(certbio, NULL, 0, NULL)) == 0)
+  {
+    log_print("Error loading cert into memory\n");
+    return(TLS_ERROR);
+  }
+
+  if (X509_STORE_load_locations(store, ca_cert, NULL) != 1)
+  {
+    log_print("Error loading CA cert or chain file\n");
+	return(TLS_ERROR);
+  }
+
+   /* Initialize the ctx structure for a verification operation*/
+  X509_STORE_CTX_init(vrfy_ctx, store, cert_str, NULL);
+
+/* Check the complete cert chain. */
+  ret = X509_verify_cert(vrfy_ctx);
+  if(ret == 0)
+  {
+	  err_print("Local certificate verification failed\n");
+	  err_print("Result: %s\n", X509_verify_cert_error_string(vrfy_ctx->error));
+	  return(TLS_ERROR);
+  }
+  else
+  {
+	  log_print("Local certificate is valid\n");
+  }
+
+  /* free used structure */
+  X509_STORE_CTX_free(vrfy_ctx);
+  X509_STORE_free(store);
+  X509_free(cert_str);
+
+  return(TLS_SUCCESS);
+}
+
 /**
  * Some useful Doxygen comment
  */
@@ -159,6 +218,7 @@ static tls_error_code_t getPeerCertificate
 	else
 	{
 		err_print("The SSL peer does not have certificate.\n");
+		return(TLS_ERROR);
 	}
 	
 	return(TLS_SUCCESS);
@@ -222,8 +282,7 @@ static tls_error_code_t initTLS(const char* const ca_cert,
 	}
  
 	/* Load the RSA CA certificate into the SSL_CTX structure */
-	/* This will allow  to verify the peer's     */
-	/* certificate.                                           */
+	/* This will allow  to verify the peer's  */
 	if(!SSL_CTX_load_verify_locations(ctx, ca_cert, NULL))
 	{
 		ERR_print_errors_fp(stderr);
@@ -237,6 +296,12 @@ static tls_error_code_t initTLS(const char* const ca_cert,
 	/* set the verify depth*/
 	SSL_CTX_set_verify_depth(ctx,VERIFY_DEPTH);
 
+	/* verify local certificate */
+	if(verifyLocalCertificate(ca_cert, cert) != TLS_SUCCESS)
+	{
+		return(TLS_ERROR);
+		
+	}
 	return(TLS_SUCCESS);
 
 }
@@ -261,7 +326,6 @@ tls_error_code_t initClientTLS(uint32_t* const tls_id,
 
 	if(initTLS(ca_cert, key, cert) != TLS_SUCCESS)
 	{
-		err_print("Error during initTLS()\n");
 		return(TLS_ERROR);
 	}
 
@@ -273,7 +337,6 @@ tls_error_code_t initClientTLS(uint32_t* const tls_id,
 	tmp_sock = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(tmp_sock == -1)
 	{
-		err_print("Error opening socket\n");
 		return(TLS_ERROR);
 	}
 
@@ -335,8 +398,11 @@ tls_error_code_t connectTLS(const uint32_t tls_id,
 
 	tls_descriptors[tls_id].ssl_ptr = ssl;
 
-	getPeerCertificate(ssl);
-		
+	if(getPeerCertificate(ssl) != TLS_SUCCESS)
+	{
+		return(TLS_ERROR);
+	}
+
 	return(TLS_SUCCESS);
 }
 
@@ -354,7 +420,6 @@ tls_error_code_t initServerTLS(const uint16_t l_port,
 
 	if(initTLS(ca_cert, key, cert) != TLS_SUCCESS)
 	{
-		err_print("Error during initTLS()\n");
 		return(TLS_ERROR);
 	}
 	
@@ -445,7 +510,10 @@ tls_error_code_t acceptTLS(uint32_t* const tls_id,
 		return(TLS_ERROR);
 	}
 
-	getPeerCertificate(ssl);
+	if(getPeerCertificate(ssl) != TLS_SUCCESS)
+	{
+		return(TLS_ERROR);
+	}
 
 	tls_descriptors[*tls_id].ssl_ptr = ssl;
 	tls_descriptors[*tls_id].socket = client_sock;
