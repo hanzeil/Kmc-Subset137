@@ -1,0 +1,18 @@
+== DEPENDANCIES ==
+ * library gnutls > v3.4.9 (needs support for TLS_ECDHE_RSA_WITH_AES_254_GCM_SHA384)
+ * library nettle > v3.1
+
+== TEST ENVIRONMENT ==
+ * Ubuntu 14.04.04 (needs gnutls recompilation)
+ * Fedora 23
+ * Centos 7
+
+
+== TODO ==
+ * add Copyleft
+ * add configure shell with options:
+ ** ./configure --help
+ *** --with-gnutls | --with-openssl
+ *** --with-gnutls-include | --with-openssl-include
+ *** --with-gnutls-lib | --with-openssl-lib
+
