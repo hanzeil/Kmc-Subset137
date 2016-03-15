@@ -1,3 +1,25 @@
+/**************************************************************************//**
+ *
+ * KMC-SS137 track-side-entity emulator for testing
+ *
+ * This files contains the implementation of an emulator for
+ * a Track-side-Entity as described in the document 
+ * SUBSET-137 On-line Key Management FFFIS ver 1.0.0. (17/12/2015).
+ * This emulator shall be used only for testing
+ *
+ * @file: emulators/track-side-entity.c
+ * $Author: $
+ * $Revision: $
+ * $Date: $
+ *
+ * History:
+ *
+ * Version     Date      Author         Change Description
+ *
+ *- $Id: $
+ *
+ ******************************************************************************/
+
 #include <stdio.h>     /* for fopen, snprintf, etc... */
 #include <string.h>    /* for memmove, memcmp, memset */
 #include <arpa/inet.h> /* for htons, etc.. */

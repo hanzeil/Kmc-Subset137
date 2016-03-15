@@ -1,3 +1,25 @@
+/**************************************************************************//**
+ *
+ * KMC-SS137 kmc-core
+ *
+ * This files contains the implementation of the SUBSET137 
+ * Key Management Center as described in the document 
+ * SUBSET-137 On-line Key Management FFFIS ver 1.0.0. (17/12/2015)
+ *
+ *
+ * @file: kmc-core/kmc-core.c
+ * $Author: $
+ * $Revision: $
+ * $Date: $
+ *
+ * History:
+ *
+ * Version     Date      Author         Change Description
+ *
+ *- $Id: $
+ *
+ ******************************************************************************/
+
 #include <stdio.h>     /* for fopen, snprintf, etc... */
 #include <string.h>    /* for memmove, memcmp, memset */
 #include <arpa/inet.h> /* for htons, etc.. */
