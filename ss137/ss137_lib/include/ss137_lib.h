@@ -1,8 +1,8 @@
 /**************************************************************************//**
  *
- * ...
+ * ss137 library header files
  *
- * This file ...
+ * This file contains the prototype and definition of the ss137 libray.
  *
  * @file: ss137/ss137_lib/include/ss137_lib.h
  * $Author: $
@@ -24,47 +24,57 @@
  * DEFINES
  ******************************************************************************/
 
+/** Default ss137 tcp port (see ref SUBSET137 7.3.1.2)*/
 #define SS137_TCP_PORT    (7912U)
+
+/** Max ip length in ASCII*/
 #define MAX_IP_LENGTH     (16U)
+
+/** Max kms entities configurable*/
 #define MAX_KMS_ENTITIES  (100U)
+
+/** Max length of certificate and key path*/
 #define MAX_PATH_LENGTH   (256U)
 
 /*****************************************************************************
  * TYPEDEFS
  *****************************************************************************/
 
+/** TLS connection identifier */
 typedef uint32_t tls_des_t;
 
+/** Structure holding the current session status */
 typedef struct
 {
-	tls_des_t      tlsID;
-	uint8_t        appTimeout;	
-	uint32_t       transNum;
-	uint16_t       peerSeqNum;
-	uint32_t       peerEtcsIDExp;
-	struct timeval startTime;
+	tls_des_t      tlsID;         /**< TLS session identifier. */
+	uint8_t        appTimeout;	  /**< Application timeout in seconds. */
+	uint32_t       transNum;      /**< Current transaction number. */
+	uint16_t       peerSeqNum;    /**< Peer entity sequence number. */
+	uint32_t       peerEtcsIDExp; /**< Peer entity expanded ETCS-ID. */
+	struct timeval startTime;     /**< Time of the last message received. */
 } session_t;
 
+/**< Struct holding the association between the expanded ETCS-ID and the IP of an entity. */
 typedef struct
 {
-	uint32_t expEtcsId;
-	char     ip[MAX_IP_LENGTH];
+	uint32_t expEtcsId;         /**< The expanded ETCS-ID. */
+	char     ip[MAX_IP_LENGTH]; /**< The IP in ascii. */
 } kms_entity_id;
 
+/**< Configuration struct for ssl137_lib. */
 typedef struct
 {
-	char rsaCACertificateFile[MAX_PATH_LENGTH];
-	char rsaKey[MAX_PATH_LENGTH];
-	char rsaCertificate[MAX_PATH_LENGTH];
-	kms_entity_id myEntityId;
-	kms_entity_id kmsEntitiesId[MAX_KMS_ENTITIES];
+	char rsaCACertificateFile[MAX_PATH_LENGTH];    /**< The path of the CA certificate. */
+	char rsaKey[MAX_PATH_LENGTH];                  /**< The path of the private key. */
+	char rsaCertificate[MAX_PATH_LENGTH];          /**< The path of the certificate. */
+	kms_entity_id myEntityId;                      /**< My entity id. */
+	kms_entity_id kmsEntitiesId[MAX_KMS_ENTITIES]; /**< Other entity id. */
 } ss137_lib_configuration_t;
 
 /*****************************************************************************
  * PUBLIC FUNCTION PROTOTYPES
  *****************************************************************************/
 
-/* tls function */
 error_code_t startClientTLS(tls_des_t* const tls_id);
 
 error_code_t startServerTLS(void);
@@ -130,5 +140,10 @@ error_code_t sendNotifKeyOpReqRcvd(const response_t* const response,
 								   const session_t* const curr_session);
 
 error_code_t sendNotifAckKeyUpStatus(const session_t* const curr_session);
+
+
+error_code_t evaluateChecksum(notif_key_db_checksum_t* const checksum,
+							  const k_struct_t k_struct_list[],
+							  const uint32_t k_struct_num);
 
 #endif /* KMC_SS137_LIB_H_ */

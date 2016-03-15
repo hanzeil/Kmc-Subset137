@@ -1,8 +1,8 @@
 /**************************************************************************//**
  *
- * ...
+ * TLS Wrapper header files
  *
- * This file ...
+ * This file contains the funcion prototype of TLS Wrapper.
  *
  * @file: ss137/tls_wrapper/include/tls_wrapper.h
  * $Author: $
@@ -27,6 +27,8 @@
 /*****************************************************************************
  * TYPEDEFS
  *****************************************************************************/
+
+/** tls_wrapper return code */
 typedef enum
 {
 	TLS_SUCCESS = 0,

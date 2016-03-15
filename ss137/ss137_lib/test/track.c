@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <libgen.h>
 
 #include "utils.h"
 #include "net_utils.h"

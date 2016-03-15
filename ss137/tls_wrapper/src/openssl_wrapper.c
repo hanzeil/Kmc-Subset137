@@ -3,7 +3,8 @@
  * TLS wrapper for OpenSSL
  *
  * This file wraps the SS137-TLS-needs in an uniform API. This implementation
- * uses OpenSSL as low-level library
+ * uses OpenSSL as low-level library. Wrapper tested on:
+ * - OpenSSL 1.0.1f 
  *
  * @file: ss137/tls_wrapper/src/tls_wrapper.c
  * $Author: $
@@ -27,6 +28,7 @@
 #include <unistd.h>
 #include <poll.h>
 #include <arpa/inet.h>
+#include <libgen.h>
 
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
@@ -45,34 +47,40 @@
  * DEFINES
  ******************************************************************************/
 
-/** @name SSL tuning
+/** @name SSL tuning parameters
  **@{*/
 #define MAX_TLS_DES          (100U)
 #define VERIFY_DEPTH         (1U)
 /**@}*/
 
+/** Converts seconds in milliseconds */
 #define SEC_TO_MSEC(x) ((x)*1000U)
 
 /*****************************************************************************
  * TYPEDEFS
  *****************************************************************************/
 
+/** Struct holding the parameter used in a TLS session */
 typedef struct
 {
-	bool_t  in_use;
-	int32_t socket;
-	SSL    *ssl_ptr;
+	bool_t  in_use;  /**< If the current descriptor is in use.*/
+	int32_t socket;  /**< TCP socket of the current TLS connection.*/
+	SSL    *ssl_ptr; /**< OpenSSL session.*/
 } tls_descriptor_t;
 
 /*****************************************************************************
  * VARIABLES
  *****************************************************************************/
+/** List of ciphers. String is colon-separated i.e. "CIPHERA:CIPHERB:CIPHERC" */
+const char allowed_ciphers[] = "ECDHE-RSA-AES256-GCM-SHA384";
 
-const char allowed_ciphers[] = "ECDHE-RSA-AES256-GCM-SHA384";  	/** List of ciphers. String is colon-separated i.e. "CIPHERA:CIPHERB:CIPHERC" */
+/** Current OpenSSL context." */
 static SSL_CTX *ctx = NULL;
 
+/** The list of TLS descriptor available */
 static tls_descriptor_t tls_descriptors[MAX_TLS_DES];
 
+/** The listen socket of the server side */
 static int32_t listen_sock = -1;
 
 /*****************************************************************************
@@ -92,11 +100,14 @@ static tls_error_code_t verifyLocalCertificate(const char* const ca_cert, const 
  *****************************************************************************/
 
 /**
- * Some useful Doxygen comment findTLSDes
+ * Find a valid TLS descriptor.
+ *
+ * This fucntion look for a not in use TLS descriptot inside the tls_descriptors array.
+ * The function calls the exit() function on any erorr on the addressing of the input parameters.
  */
 static tls_error_code_t findTLSDes
 (
-	uint32_t * const tls_id /**< [in] SSL context */
+	uint32_t * const tls_id /**< [in] TLS desciptor identifier. */
 	)
 {
 	uint32_t i = 0U;
@@ -124,8 +135,17 @@ static tls_error_code_t findTLSDes
 	return(TLS_SUCCESS);
 }
 
-static tls_error_code_t verifyLocalCertificate(const char* const ca_cert,
-											   const char* const cert)
+/**
+ * Verify local certificate.
+ *
+ * This function verifies the local certificate againt the CA certificate.
+ * The function calls the exit() function on any erorr on the addressing of the input parameters.
+ */
+static tls_error_code_t verifyLocalCertificate /** @return TLS_SUCCESS if the certificate is valid, TLS_ERROR in case of error. */
+(
+	const char* const ca_cert, /**< [in] CA certificate file. */
+	const char* const cert     /**< [in] Certificate file. */   
+	)
 {
 	
   X509  *cert_str = NULL;
@@ -133,6 +153,9 @@ static tls_error_code_t verifyLocalCertificate(const char* const ca_cert,
   X509_STORE_CTX *vrfy_ctx = NULL;
   BIO   *certbio = NULL;
   int ret;
+
+  ASSERT(ca_cert != NULL, E_NULL_POINTER);
+  ASSERT(cert != NULL, E_NULL_POINTER);
 
   certbio = BIO_new(BIO_s_file());
   OpenSSL_add_all_algorithms();
@@ -185,9 +208,12 @@ static tls_error_code_t verifyLocalCertificate(const char* const ca_cert,
 }
 
 /**
- * Some useful Doxygen comment
+ * Verify peer certificate.
+ *
+ * This function is called during the TLS handshake peer certificate verification.
+ * The function calls the exit() function on any erorr on the addressing of the input parameters.
  */
-static tls_error_code_t getPeerCertificate
+static tls_error_code_t getPeerCertificate /** @return TLS_SUCCESS if the peer certificate is valid, TLS_ERROR if the peer certificate is not valid. */
 (
 	SSL* ssl /**< [in] SSL context */
 	)
@@ -222,9 +248,19 @@ static tls_error_code_t getPeerCertificate
 	return(TLS_SUCCESS);
 }
 
-static tls_error_code_t initTLS(const char* const ca_cert,
-								const char *const key,
-								const char* const cert)
+/**
+ * Initialize the GnuTLS library.
+ *
+ * This function calls all the function needed to initiliaze the OpenSSL library
+ * including the initialization of ctx struct.
+ * The function calls the exit() function on any erorr on the addressing of the input parameters.
+ */
+static tls_error_code_t initTLS  /** @return TLS_SUCCESS if the initialization succeeds, TLS_ERROR in case of error. */
+(
+	const char* const ca_cert, /**< [in] CA certificate file. */
+	const char *const key,	   /**< [in] Private key file. */	
+	const char* const cert	   /**< [in] Certificate file. */   
+	)
 {
 	const SSL_METHOD * meth = NULL;
 
@@ -308,10 +344,21 @@ static tls_error_code_t initTLS(const char* const ca_cert,
  * PUBLIC FUNCTION DECLARATIONS
  *****************************************************************************/
 
-tls_error_code_t initClientTLS(uint32_t* const tls_id,
-							   const char* const ca_cert,
-							   const char *const key,
-							   const char* const cert)
+/**
+ * TLS client init.
+ *
+ * This function initializes the TLS client side. In particular it opens the TCP socket
+ * used to communicate with the server. If the initialization succeeds it returns a valid
+ * TLS session identifier.
+ * The function calls the exit() function on any erorr on the addressing of the input parameters.
+ */
+tls_error_code_t initClientTLS /** @return TLS_SUCCESS if the initialization succeeds, TLS_ERROR in case of error. */	
+(							                                                                                            
+	uint32_t* const tls_id,    /**< [out] The TLS session identifier. */												
+	const char* const ca_cert, /**< [in] CA certificate file. */														
+	const char *const key,	   /**< [in] Private key file. */															
+	const char* const cert	   /**< [in] Certificate file. */                                                           
+	)
 {
 	int32_t tmp_sock = -1;
 
@@ -342,9 +389,19 @@ tls_error_code_t initClientTLS(uint32_t* const tls_id,
 	return(TLS_SUCCESS);
 }
 
-tls_error_code_t connectTLS(const uint32_t tls_id,
-							const char* const server_ip,
-							const uint16_t server_port)
+/**
+ * TLS client connect.
+ *
+ * This function tries to connect to the specified server at the given port and perform
+ * the initial TLS handshake, including the certificate verification.
+ * The function calls the exit() function on any erorr on the addressing of the input parameters.
+ */
+tls_error_code_t connectTLS      /** @return TLS_SUCCESS if the connect and handshake succeed, TLS_ERROR in case of error. */ 
+(								                                                                                              
+	const uint32_t tls_id,		 /**< [in] The TLS session identifier. */													  
+	const char* const server_ip, /**< [in] The server ip in ASCII format. */												  
+	const uint16_t server_port	 /**< [in] The server port. */                                                                
+	)
 {
 	struct sockaddr_in server_addr;
 	SSL* ssl = NULL;
@@ -403,11 +460,20 @@ tls_error_code_t connectTLS(const uint32_t tls_id,
 	return(TLS_SUCCESS);
 }
 
-/* server */
-tls_error_code_t initServerTLS(const uint16_t l_port,
-							   const char* const ca_cert,
-							   const char *const key,
-							   const char* const cert)
+/**
+ * TLS server init.
+ *
+ * This function initializes the TLS server side. In particular it opens the TCP socket
+ * used to listen for incoming connections and performs a bind on the local port specified as argument.
+ * The function calls the exit() function on any erorr on the addressing of the input parameters.
+ */
+tls_error_code_t initServerTLS /** @return TLS_SUCCESS if the initialization succeeds, TLS_ERROR in case of error. */	
+(							                                                                                            
+	const uint16_t l_port,	   /**< [in] The local listening port. */													
+	const char* const ca_cert, /**< [in] CA certificate file. */														
+	const char *const key,	   /**< [in] Private key file. */															
+	const char* const cert	   /**< [in] Certificate file. */                                                           
+	)
 {
 	struct sockaddr_in sa_serv;
 	EC_KEY  *ecdh;
@@ -463,8 +529,18 @@ tls_error_code_t initServerTLS(const uint16_t l_port,
 	return(TLS_SUCCESS);
 }
 
-tls_error_code_t acceptTLS(uint32_t* const tls_id,
-						   char* const client_ip)
+/**
+ * TLS server accept.
+ *
+ * This function waits for incoming tls connection and returns when a valid TLS handshake
+ * has been performed with a client, including the certificate verification.
+ * The function calls the exit() function on any erorr on the addressing of the input parameters.
+ */
+tls_error_code_t acceptTLS  /** @return TLS_SUCCESS if the accept succeeds, TLS_ERROR in case of error. */ 
+(							                                                                               
+	uint32_t* const tls_id,	/**< [out] The TLS session identifier. */									   
+	char* const client_ip	/**< [out] The IP of the connected client in ASCII format. */                  
+	)
 {
 	struct sockaddr_in sa_cli;
 	int32_t  client_len = 0;
@@ -533,7 +609,16 @@ tls_error_code_t acceptTLS(uint32_t* const tls_id,
 	return(TLS_SUCCESS);
 }
 
-tls_error_code_t closeTLS(const uint32_t tls_id)
+/**
+ * Closes a TLS connection.
+ *
+ * This function the TLS connection corresponding to the connection identifier passed as argument,
+ * releasing the correspondig entry in the tls_descriptors struct.
+ */
+tls_error_code_t closeTLS /** @return error code */									 
+(						                                                                
+	const uint32_t tls_id /**< [in] The TLS identifier of the connection to close*/     
+	)
 {
 	ASSERT(tls_id < MAX_TLS_DES, E_INVALID_PARAM);
 	
@@ -555,10 +640,22 @@ tls_error_code_t closeTLS(const uint32_t tls_id)
 	return(TLS_SUCCESS);
 }
 
-tls_error_code_t sendTLS(uint32_t* const bytes_sent,
-						 const uint8_t* const buf,
-						 const uint32_t buf_len,
-						 const uint32_t tls_id)
+/**
+ * Send a mesasage on a TLS connection already enstablished.
+ *
+ * The function sends through TLS the message stored in the buf array.
+ * It sends the message of size buf_len using the TLS connection identifier
+ * specified as argument.
+ * 
+ * The function calls the exit() function on any erorr on the addressing of the input parameters.
+ */
+tls_error_code_t sendTLS        /** @return TLS_SUCCESS if the message is correctly sent, TLS_ERROR in case of error. */   
+(								                                                                                           
+	uint32_t* const bytes_sent,	/**< [out] The number of bytes sent.*/     												   
+	const uint8_t* const buf,	/**< [in] The pointer to the buffer to be sent.*/     									   
+	const uint32_t buf_len,		/**< [in] The buffer length.*/     														   
+	const uint32_t tls_id		/**< [in] The TLS session identifier. */                                                   
+	)
 {
 	ASSERT(tls_id < MAX_TLS_DES, E_INVALID_PARAM);
 	ASSERT(bytes_sent != NULL, E_NULL_POINTER);
@@ -575,11 +672,23 @@ tls_error_code_t sendTLS(uint32_t* const bytes_sent,
 	return(TLS_SUCCESS);
 }
 
-tls_error_code_t receiveTLS(uint32_t* const bytes_received,
-							uint8_t* const buf,
-							const uint32_t buf_len,
-							const uint8_t timeout,
-							const uint32_t tls_id)
+/**
+ * Receive a mesasage from a TLS connection already enstablished.
+ *
+ * The function reads through TLS a message storing it in the area pointed
+ * by the buf parameter. The function waits for the time specified as argument
+ * and then return if no message has been received.
+ * The function calls the exit() function on any erorr on the addressing of the input parameters.
+ */
+tls_error_code_t receiveTLS         /** @return TLS_SUCCESS if the message is correctly received,			 
+										 TLS_ERROR in case of error or if the connection goes in timeout. */ 
+(									                                                                        
+	uint32_t* const bytes_received,	/**< [out] The number of bytes read.*/             					 
+	uint8_t* const buf,				/**< [out] The buffer where the data read is stored.*/             	 
+	const uint32_t buf_len,			/**< [in] Max bufer length.*/             								 
+	const uint8_t timeout,			/**< [in] Receive timeout in seconds.*/             					 
+	const uint32_t tls_id			/**< [in] The TLS session identifier. */                                
+	)
 {
 	struct pollfd handles[1];
     const nfds_t n_handles = 1;
@@ -629,7 +738,16 @@ tls_error_code_t receiveTLS(uint32_t* const bytes_received,
 	return(TLS_SUCCESS);
 }
 
-tls_error_code_t exitTLS(void)
+/**
+ * Exit OpenSSL library.
+ *
+ * This function frees all the structure related to OpenSSL library and close the server listen socket
+ * if it's called by the TLS server.
+ */
+tls_error_code_t exitTLS /** @return TLS_SUCCESS if the close operation succeeds, TLS_ERROR in case of error. */
+(
+	void
+	)
 {
 	/* Free the SSL_CTX structure */
 	SSL_CTX_free(ctx);

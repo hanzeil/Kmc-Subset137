@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <libgen.h>
 
 #include "utils.h"
 #include "net_utils.h"
@@ -17,7 +18,7 @@
 
 k_struct_t k_struct =
 {
-		K_LENGTH,
+		KMAC_SIZE,
 		{
 				0xaabbccdd,
 				0xddeeff00,

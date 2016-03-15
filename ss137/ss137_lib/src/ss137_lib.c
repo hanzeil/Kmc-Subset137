@@ -1,8 +1,9 @@
 /**************************************************************************//**
  *
- * ...
+ * SS137 library
  *
- * This file ...
+ * This files contains the implementation of the SUBSET137 as described
+ * in the document SUBSET-137 On-line Key Management FFFIS ver 1.0.0. (17/12/2015)
  *
  * @file: ss137/ss137_lib/src/ss137_lib.c
  * $Author: $
@@ -29,6 +30,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <libgen.h>
 
 #include "utils.h"
 #include "net_utils.h"
@@ -40,7 +42,8 @@
  * DEFINES
  ******************************************************************************/
 
-#define INIT_CONNECTION_TIMEOUT (15U)  /**< Timeout application session initialization (ref. SUBSET-137 5.4.4.1) */
+/**< Timeout application session initialization (ref. SUBSET-137 5.4.4.1) */
+#define INIT_CONNECTION_TIMEOUT (15U)  
 
 /*****************************************************************************
  * TYPEDEFS
@@ -68,16 +71,16 @@ static error_code_t sendNotifSessionInit(const session_t* const curr_session);
 static error_code_t sendNotifSessionEnd(const session_t* const curr_session);
 
 static error_code_t sendCmdAddKeys(const request_t* const request,
-				   const session_t* const curr_session);
+								   const session_t* const curr_session);
 
 static error_code_t sendCmdDeleteKeys(const request_t* const request,
-				      const session_t* const curr_session);
+									  const session_t* const curr_session);
 
 static error_code_t sendCmdUpKeyValidities(const request_t* const request,
-					   const session_t* const curr_session);
+										   const session_t* const curr_session);
 
 static error_code_t sendCmdUpKeyEntities(const request_t* const payload,
-					 const session_t* const curr_session);
+										 const session_t* const curr_session);
 
 static error_code_t sendCmdReqKeyDBChecksum(const session_t* const curr_session);
 
@@ -86,78 +89,79 @@ static error_code_t sendCmdDeleteAllKeys(const session_t* const curr_session);
 static error_code_t sendCmdReqKeyDBChecksum(const session_t* const curr_session);
 
 static error_code_t sendCmdReqKeyOperation(const request_t* const request,
-					   const session_t* const curr_session);
+										   const session_t* const curr_session);
 
 static error_code_t sendNotifKeyUpdateStatus(const request_t* const request,
-					     const session_t* const curr_session);
+											 const session_t* const curr_session);
 
 static error_code_t buildMsgHeader(write_stream_t* const ostream,
-				   const uint32_t msg_length,
-				   const uint32_t msg_type,
-				   const uint32_t peer_etcs_id_exp,
-				   const uint32_t trans_num);
+								   const uint32_t msg_length,
+								   const uint32_t msg_type,
+								   const uint32_t peer_etcs_id_exp,
+								   const uint32_t trans_num);
 
 static error_code_t convertMsgHeaderToHost(msg_header_t* const header,
-					   read_stream_t* const istream);
+										   read_stream_t* const istream);
 
 static error_code_t convertCmdAddKeysToHost(request_t* const request,
-					    read_stream_t* const istream);
+											read_stream_t* const istream);
 
 static error_code_t convertCmdDeleteKeysToHost(request_t* const request,
-					       read_stream_t* const istream);
+											   read_stream_t* const istream);
 
 static error_code_t convertCmdUpKeyValiditiesToHost(request_t* const request,
-						    read_stream_t* const istream);
+													read_stream_t* const istream);
 
 static error_code_t convertCmdUpKeyEntitiesToHost(request_t* const request,
-						  read_stream_t* const istream);
+												  read_stream_t* const istream);
 
 static error_code_t convertNotifKeyOpReqRcvdToHost(response_t* const response,
-						   read_stream_t* const istream);
+												   read_stream_t* const istream);
 
 static error_code_t convertNotifKeyUpdateStatusToHost(request_t* const request,
-						      read_stream_t* const istream);
+													  read_stream_t* const istream);
 
 static error_code_t convertCmdReqKeyOperationToHost(request_t* const request,
-						    read_stream_t* const istream);
+													read_stream_t* const istream);
 
 static error_code_t convertNotifSessionInitToHost(notif_session_init_t* const request,
-						  read_stream_t* const istream);
+												  read_stream_t* const istream);
 
 static error_code_t convertNotifResponseToHost(response_t* const response,
-					       read_stream_t* const istream);
+											   read_stream_t* const istream);
 
 static error_code_t convertNotifKeyDBChecksumToHost(response_t* const response,
-						    read_stream_t* const istream);
+													read_stream_t* const istream);
 
 static error_code_t convertMsgHeaderToHost(msg_header_t* const header,
-					   read_stream_t* const istream);
+										   read_stream_t* const istream);
 
 static error_code_t checkMsgHeader(response_reason_t* const result,
-				   session_t* const curr_session,
-				   const msg_header_t* const header,
-				   const uint32_t exp_msg_length);
+								   session_t* const curr_session,
+								   const msg_header_t* const header,
+								   const uint32_t exp_msg_length);
 
 static error_code_t sendMsg(const write_stream_t* const ostream,
-			    const tls_des_t tls_id);
+							const tls_des_t tls_id);
 
 static error_code_t receiveMsg(read_stream_t* const istream,
-			       const uint8_t timeout,
-			       const tls_des_t tls_id);
+							   const uint8_t timeout,
+							   const tls_des_t tls_id);
 
 static void getMyEtcsIDExp(uint32_t* const my_etcs_id_exp);
 
 /*****************************************************************************
  * LOCAL FUNCTION DECLARATIONS
  *****************************************************************************/
-
 /**
- * It returns my Expanded ETCS-ID. 
+ * Gives my Expanded ETCS-ID.
+ *
+ * Gives my Expanded ETCS-ID taken from the configuration struct ss137_lib_config.
  */
 static void getMyEtcsIDExp      /** @return void */
 (
- uint32_t* const my_etcs_id_exp /**< [out] A pointer to be fill with my current Exp. ETCS-ID */
- )
+	uint32_t* const my_etcs_id_exp /**< [out] A pointer to be fill with my current Exp. ETCS-ID */
+	)
 {
 	ASSERT(my_etcs_id_exp != NULL, E_NULL_POINTER);
 
@@ -179,7 +183,7 @@ static error_code_t buildMsgHeader       /** @return error code */
 	const uint32_t msg_type,         /**< [in]  The message type. */
 	const uint32_t peer_etcs_id_exp, /**< [in]  The Expanded ETCS-ID of the corresponding peer. */
 	const uint32_t trans_num         /**< [in]  The transaction number. */
- )
+	)
 {
 	msg_header_t header;
 	uint32_t my_etcs_id_exp = 0U;
@@ -226,11 +230,11 @@ static error_code_t buildMsgHeader       /** @return error code */
  */
 static error_code_t convertMsgHeaderToHost /** @return SUCCESS if the header is correctly converted, ERROR if the input buffer length is shorter than the expected. */
 (
- msg_header_t* const header,  /**< [out] The pointer to the msg_header_t structure storing the header in host format. */
- read_stream_t* const istream /**< [in]  The pointer to the read_stream_t structure storing the header in net format. */ 
- )
+	msg_header_t* const header,  /**< [out] The pointer to the msg_header_t structure storing the header in host format. */
+	read_stream_t* const istream /**< [in]  The pointer to the read_stream_t structure storing the header in net format. */ 
+	)
 {
-  error_code_t tmp_error = SUCCESS;
+	error_code_t tmp_error = SUCCESS;
   
 	ASSERT((istream != NULL) && (header != NULL), E_NULL_POINTER);
 
@@ -243,9 +247,9 @@ static error_code_t convertMsgHeaderToHost /** @return SUCCESS if the header is 
 	tmp_error |= netToHost8(&header->msgType, (uint32_t)sizeof(uint8_t), istream);
 
 	if(tmp_error != SUCCESS)
-	  {
+	{
 	    return(ERROR);
-	  }
+	}
 
 	return(SUCCESS);
 }
@@ -261,9 +265,9 @@ static error_code_t convertMsgHeaderToHost /** @return SUCCESS if the header is 
  */
 static error_code_t convertCmdAddKeysToHost /** @return SUCCESS if the header is correctly converted, ERROR if the input buffer length is shorter than the expected. */
 (
- request_t* const request,     /**< [out] The pointer to the request_t structure storing the message body in host format. */
- read_stream_t* const istream  /**< [in]  The pointer to the read_stream_t structure storing the message body in net format. */
- )
+	request_t* const request,     /**< [out] The pointer to the request_t structure storing the message body in host format. */
+	read_stream_t* const istream  /**< [in]  The pointer to the read_stream_t structure storing the message body in net format. */
+	)
 {
 	uint32_t i = 0U;
 	uint32_t j = 0U;
@@ -293,9 +297,9 @@ static error_code_t convertCmdAddKeysToHost /** @return SUCCESS if the header is
 	}
 
 	if(tmp_error != SUCCESS)
-	  {
+	{
 	    return(ERROR);
-	  }
+	}
 
 	return(SUCCESS);
 }
@@ -313,7 +317,7 @@ static error_code_t convertCmdDeleteKeysToHost /** @return SUCCESS if the header
 (
 	request_t* const request,    /**< [out] The pointer to the request_t structure storing the message body in host format. */
 	read_stream_t* const istream /**< [in]  The pointer to the read_stream_t structure storing the message body in net format. */
- )
+	)
 {
 	uint32_t i = 0U;
 	error_code_t tmp_error = SUCCESS;
@@ -331,9 +335,9 @@ static error_code_t convertCmdDeleteKeysToHost /** @return SUCCESS if the header
 	}
 
 	if(tmp_error != SUCCESS)
-	  {
+	{
 	    return(ERROR);
-	  }
+	}
 	
 	return(SUCCESS);
 }
@@ -369,9 +373,9 @@ static error_code_t convertCmdUpKeyValiditiesToHost /** @return SUCCESS if the h
 	}
 
 	if(tmp_error != SUCCESS)
-	  {
+	{
 	    return(ERROR);
-	  }
+	}
 
 	return(SUCCESS);
 }
@@ -414,9 +418,9 @@ static error_code_t convertCmdUpKeyEntitiesToHost  /** @return SUCCESS if the he
 	}
 
 	if(tmp_error != SUCCESS)
-	  {
+	{
 	    return(ERROR);
-	  }
+	}
 
 	return(SUCCESS);
 }
@@ -438,31 +442,31 @@ static error_code_t convertCmdReqKeyOperationToHost /** @return SUCCESS if the h
 (
 	request_t* const request,    /**< [out] The pointer to the request_t structure storing the message body in host format.*/
 	read_stream_t* const istream /**< [in]  The pointer to the read_stream_t structure storing the message body in net format.*/
- )
+	)
 {
-  error_code_t tmp_error = SUCCESS;
+	error_code_t tmp_error = SUCCESS;
   
-  ASSERT((istream != NULL) && (request != NULL), E_NULL_POINTER);
+	ASSERT((istream != NULL) && (request != NULL), E_NULL_POINTER);
   
-  tmp_error |= netToHost32(&request->reqKeyOpPayload.etcsID, istream);
-  tmp_error |= netToHost8(&request->reqKeyOpPayload.reason, sizeof(uint8_t), istream);
+	tmp_error |= netToHost32(&request->reqKeyOpPayload.etcsID, istream);
+	tmp_error |= netToHost8(&request->reqKeyOpPayload.reason, sizeof(uint8_t), istream);
   
-  if(request->reqKeyOpPayload.reason == RED_SCHED)
+	if(request->reqKeyOpPayload.reason == RED_SCHED)
     {
-      tmp_error |= netToHost32(&request->reqKeyOpPayload.startValidity, istream);
-      tmp_error |= netToHost32(&request->reqKeyOpPayload.endValidity, istream);
+		tmp_error |= netToHost32(&request->reqKeyOpPayload.startValidity, istream);
+		tmp_error |= netToHost32(&request->reqKeyOpPayload.endValidity, istream);
     }
   
-  tmp_error |= netToHost16(&request->reqKeyOpPayload.textLength, istream);
-  tmp_error |= netToHost8((uint8_t*)request->reqKeyOpPayload.text,
-			  request->reqKeyOpPayload.textLength, istream);
+	tmp_error |= netToHost16(&request->reqKeyOpPayload.textLength, istream);
+	tmp_error |= netToHost8((uint8_t*)request->reqKeyOpPayload.text,
+							request->reqKeyOpPayload.textLength, istream);
   
-  if(tmp_error != SUCCESS)
+	if(tmp_error != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -478,21 +482,21 @@ static error_code_t convertNotifKeyUpdateStatusToHost /** @return SUCCESS if the
 (
 	request_t* const request,    /**< [out] The pointer to the request_t structure storing the message body in host format.*/
 	read_stream_t* const istream /**< [in]  The pointer to the read_stream_t structure storing the message body in net format.*/
- )
+	)
 {
-  error_code_t tmp_error = SUCCESS;
-  ASSERT((istream != NULL) && (request != NULL), E_NULL_POINTER);
+	error_code_t tmp_error = SUCCESS;
+	ASSERT((istream != NULL) && (request != NULL), E_NULL_POINTER);
 
-  tmp_error |= netToHost32(&request->keyUpStatusPayload.kIdent.genID, istream);
-  tmp_error |= netToHost32(&request->keyUpStatusPayload.kIdent.serNum, istream);
-  tmp_error |= netToHost8(&request->keyUpStatusPayload.kStatus, sizeof(uint8_t), istream);
+	tmp_error |= netToHost32(&request->keyUpStatusPayload.kIdent.genID, istream);
+	tmp_error |= netToHost32(&request->keyUpStatusPayload.kIdent.serNum, istream);
+	tmp_error |= netToHost8(&request->keyUpStatusPayload.kStatus, sizeof(uint8_t), istream);
   
-  if(tmp_error != SUCCESS)
+	if(tmp_error != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
 	
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -532,22 +536,22 @@ static error_code_t convertNotifSessionInitToHost /** @return SUCCESS if the hea
 (
 	notif_session_init_t* const response, /**< [out] The pointer to the notif_session_t structure storing the message body in host format.*/
 	read_stream_t* const istream          /**< [in]  The pointer to the read_stream_t structure storing the message body in net format.*/
- )
+	)
 {
-  error_code_t tmp_error = SUCCESS;
+	error_code_t tmp_error = SUCCESS;
   
-  ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
+	ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
   
-  tmp_error |= netToHost8(&response->nVersion, sizeof(uint8_t), istream);
-  tmp_error |= netToHost8(response->version, sizeof(uint8_t)*NUM_VERSION, istream);
-  tmp_error |= netToHost8(&response->appTimeout, sizeof(uint8_t), istream);
+	tmp_error |= netToHost8(&response->nVersion, sizeof(uint8_t), istream);
+	tmp_error |= netToHost8(response->version, sizeof(uint8_t)*NUM_VERSION, istream);
+	tmp_error |= netToHost8(&response->appTimeout, sizeof(uint8_t), istream);
   
-  if(tmp_error != SUCCESS)
+	if(tmp_error != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -566,21 +570,21 @@ static error_code_t convertNotifResponseToHost /** @return SUCCESS if the header
 	read_stream_t* const istream /**< [in]  The pointer to the read_stream_t structure storing the message body in net format.*/
 	)
 {
-  error_code_t tmp_error = SUCCESS;
+	error_code_t tmp_error = SUCCESS;
   
-  ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
+	ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
   
-  tmp_error |= netToHost8(&response->notifPayload.reason, sizeof(uint8_t), istream);
-  tmp_error |= netToHost16(&response->notifPayload.reqNum, istream);
-  tmp_error |= netToHost8(response->notifPayload.notificationList,
-			  sizeof(uint8_t)*response->notifPayload.reqNum, istream);
+	tmp_error |= netToHost8(&response->notifPayload.reason, sizeof(uint8_t), istream);
+	tmp_error |= netToHost16(&response->notifPayload.reqNum, istream);
+	tmp_error |= netToHost8(response->notifPayload.notificationList,
+							sizeof(uint8_t)*response->notifPayload.reqNum, istream);
   
-  if(tmp_error != SUCCESS)
+	if(tmp_error != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -593,22 +597,22 @@ static error_code_t convertNotifResponseToHost /** @return SUCCESS if the header
  */
 static error_code_t convertNotifKeyDBChecksumToHost /** @return SUCCESS if the header is correctly converted, ERROR if the input buffer length is shorter than the expected. */
 (
- response_t* const response,  /**< [out] The pointer to the response_t structure storing the message body in host format.*/
- read_stream_t* const istream /**< [in]  The pointer to the read_stream_t structure storing the message body in net format.*/
- )
+	response_t* const response,  /**< [out] The pointer to the response_t structure storing the message body in host format.*/
+	read_stream_t* const istream /**< [in]  The pointer to the read_stream_t structure storing the message body in net format.*/
+	)
 {
-  error_code_t tmp_error = SUCCESS;
+	error_code_t tmp_error = SUCCESS;
   
-  ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
+	ASSERT((istream != NULL) && (response != NULL), E_NULL_POINTER);
   
-  tmp_error |= netToHost8(response->dbChecksumPayload.checksum, (uint32_t)CHECKSUM_SIZE, istream);
+	tmp_error |= netToHost8(response->dbChecksumPayload.checksum, (uint32_t)CHECKSUM_SIZE, istream);
   
-  if(tmp_error != SUCCESS)
+	if(tmp_error != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -628,85 +632,85 @@ static error_code_t convertNotifKeyDBChecksumToHost /** @return SUCCESS if the h
  */
 static error_code_t checkMsgHeader /** @return SUCCESS in any case. */
 (
- response_reason_t* const result,  /**< [out]    The pointer to the result of the header validation.*/   
- session_t* const curr_session,    /**< [in/out] The pointer to the session_t struct that stores some of the values used for comparison.*/
- const msg_header_t* const header, /**< [in]     The pointer to the header struct to be validate.*/ 	  
- const uint32_t exp_msg_length     /**< [in]     The expected message length.*/     
- )
+	response_reason_t* const result,  /**< [out]    The pointer to the result of the header validation.*/   
+	session_t* const curr_session,    /**< [in/out] The pointer to the session_t struct that stores some of the values used for comparison.*/
+	const msg_header_t* const header, /**< [in]     The pointer to the header struct to be validate.*/ 	  
+	const uint32_t exp_msg_length     /**< [in]     The expected message length.*/     
+	)
 {
-  uint32_t my_etcs_id_exp = 0U;
+	uint32_t my_etcs_id_exp = 0U;
 
-  ASSERT(header != NULL, E_NULL_POINTER);
-  ASSERT(curr_session != NULL, E_NULL_POINTER);
-  ASSERT(result, E_NULL_POINTER);
+	ASSERT(header != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(result, E_NULL_POINTER);
 
-  getMyEtcsIDExp(&my_etcs_id_exp);
+	getMyEtcsIDExp(&my_etcs_id_exp);
 	
-  if( header->sendIDExp != curr_session->peerEtcsIDExp )
+	if( header->sendIDExp != curr_session->peerEtcsIDExp )
     {
-      /* wrong sender id */
-      *result = RESP_WRONG_SENDER_ID;
-      warning_print("Invalid sender ID:  received 0x%08x exp 0x%08x\n",
-		    header->sendIDExp, curr_session->peerEtcsIDExp);
+		/* wrong sender id */
+		*result = RESP_WRONG_SENDER_ID;
+		warning_print("Invalid sender ID:  received 0x%08x exp 0x%08x\n",
+					  header->sendIDExp, curr_session->peerEtcsIDExp);
     }
-  else if( header->recIDExp != my_etcs_id_exp )
+	else if( header->recIDExp != my_etcs_id_exp )
     {
-      /* wrong receiver id */
-      *result = RESP_WRONG_REC_ID;
-      warning_print("Invalid rec ID:  received 0x%08x exp 0x%08x\n",
-		    header->recIDExp, my_etcs_id_exp);
+		/* wrong receiver id */
+		*result = RESP_WRONG_REC_ID;
+		warning_print("Invalid rec ID:  received 0x%08x exp 0x%08x\n",
+					  header->recIDExp, my_etcs_id_exp);
     }
-  else if( header->msgLength !=  exp_msg_length )
+	else if( header->msgLength !=  exp_msg_length )
     {
-      /* wrong msg length */
-      *result = RESP_WRONG_LENGTH;
-      warning_print("Invalid msg length:  received 0x%08x exp 0x%08x\n",
-		    header->msgLength, exp_msg_length);
+		/* wrong msg length */
+		*result = RESP_WRONG_LENGTH;
+		warning_print("Invalid msg length:  received 0x%08x exp 0x%08x\n",
+					  header->msgLength, exp_msg_length);
     }
-  else if( header->msgType > NOTIF_KEY_DB_CHECKSUM )
+	else if( header->msgType > NOTIF_KEY_DB_CHECKSUM )
     {
-      /* msg type not supported */
-      *result = RESP_NOT_SUPPORTED;
-      warning_print("Invalid msg type:  received 0x%02x\n",
-		    header->msgType);
+		/* msg type not supported */
+		*result = RESP_NOT_SUPPORTED;
+		warning_print("Invalid msg type:  received 0x%02x\n",
+					  header->msgType);
     }
-  else if( header->version != supportedVersion[0] )
+	else if( header->version != supportedVersion[0] )
     {
-      /* wrong version */
-      *result = RESP_WRONG_VERSION;
-      warning_print("Invalid interface version:  received 0x%02x exp 0x%02x\n",
-		    header->version, supportedVersion[0]);
+		/* wrong version */
+		*result = RESP_WRONG_VERSION;
+		warning_print("Invalid interface version:  received 0x%02x exp 0x%02x\n",
+					  header->version, supportedVersion[0]);
     }
-  /* For the NOTIF_SESSION_INIT  message the sequence
-     number shall not be checked, see ref. SUBSET-137 5.4.1.2*/
-  else if( (header->seqNum != (curr_session->peerSeqNum + 1)) &&
-	   (header->msgType != NOTIF_SESSION_INIT))
+	/* For the NOTIF_SESSION_INIT  message the sequence
+	   number shall not be checked, see ref. SUBSET-137 5.4.1.2*/
+	else if( (header->seqNum != (curr_session->peerSeqNum + 1)) &&
+			 (header->msgType != NOTIF_SESSION_INIT))
     {
-      /* wrong sequence number */
-      *result = RESP_WRONG_SEQ_NUM;
-      warning_print("Invalid seq num:  received 0x%04x exp 0x%04x\n",
-		    curr_session->transNum, header->transNum);
+		/* wrong sequence number */
+		*result = RESP_WRONG_SEQ_NUM;
+		warning_print("Invalid seq num:  received 0x%04x exp 0x%04x\n",
+					  curr_session->transNum, header->transNum);
     }
-  else if( ((header->transNum !=  curr_session->transNum) &&
-	    (header->msgType != NOTIF_END_OF_UPDATE)) ||
-	   ((header->transNum != 0U) &&
-	    (header->msgType == NOTIF_END_OF_UPDATE)))
+	else if( ((header->transNum !=  curr_session->transNum) &&
+			  (header->msgType != NOTIF_END_OF_UPDATE)) ||
+			 ((header->transNum != 0U) &&
+			  (header->msgType == NOTIF_END_OF_UPDATE)))
     {
-      /* wrong transaction number */
-      *result = RESP_WRONG_TRANS_NUM;
-      warning_print("Invalid trans number:  received 0x%08x exp 0x%08x\n",
-		    curr_session->transNum, header->transNum);
+		/* wrong transaction number */
+		*result = RESP_WRONG_TRANS_NUM;
+		warning_print("Invalid trans number:  received 0x%08x exp 0x%08x\n",
+					  curr_session->transNum, header->transNum);
     }
-  else
+	else
     {
-      /* valid header */
-      *result = RESP_OK;
+		/* valid header */
+		*result = RESP_OK;
     }
 
-  /* set new peer sequence number */
-  curr_session->peerSeqNum = header->seqNum;
+	/* set new peer sequence number */
+	curr_session->peerSeqNum = header->seqNum;
 	
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -719,9 +723,9 @@ static error_code_t checkMsgHeader /** @return SUCCESS in any case. */
  */
 static error_code_t sendMsg           /** @return SUCCESS if the message is correctly sent, ERROR in case of error on sendTLS call or if the message is not sent entirely. */
 (
- const write_stream_t* const ostream, /**< [in] Structure where the message to be sent is stored.*/   
- const tls_des_t tls_id		      /**< [in] Identifier of the TLS connection.*/
- )
+	const write_stream_t* const ostream, /**< [in] Structure where the message to be sent is stored.*/   
+	const tls_des_t tls_id		      /**< [in] Identifier of the TLS connection.*/
+	)
 {
 	uint32_t bytes_sent = 0U;
 	
@@ -737,6 +741,7 @@ static error_code_t sendMsg           /** @return SUCCESS if the message is corr
 		err_print("Cannot complete send operation of msg (bytes sent %d, expectd %d)\n", bytes_sent, ostream->curSize);
 		return(ERROR);
 	}
+
 #ifdef __DEBUG__
 	char dump_msg[2000];
 	char tmp_str[5];
@@ -751,6 +756,7 @@ static error_code_t sendMsg           /** @return SUCCESS if the message is corr
 	}
 	log_print("%s\n", dump_msg);
 #endif
+	
 	mySeqNum++;
 	
 	return(SUCCESS);
@@ -767,40 +773,40 @@ static error_code_t sendMsg           /** @return SUCCESS if the message is corr
  */
 static error_code_t evaluateRemainingTime /** @return SUCCESS if the difference is correctly evaluated, ERROR if start_time is larger than the current timeor if the remaining time is larger than 255 (see ref. SUBSET-137 5.3.13) */
 (
- uint8_t *const remaining_time,        /**< [out] The pointer to the area storing the remaining time to wait.*/   
- const struct timeval start_time,      /**< [in]  The time of the last message received by the peer.*/   
- const uint8_t exp_timeout             /**< [in]  The current application timeout.*/   
- )
+	uint8_t *const remaining_time,        /**< [out] The pointer to the area storing the remaining time to wait.*/   
+	const struct timeval start_time,      /**< [in]  The time of the last message received by the peer.*/   
+	const uint8_t exp_timeout             /**< [in]  The current application timeout.*/   
+	)
 {
-  struct timeval curr_time = {0U, 0U};
-  uint64_t elapsed_time = 0U;
-  uint64_t tmp_remaining_time = 0U;
+	struct timeval curr_time = {0U, 0U};
+	uint64_t elapsed_time = 0U;
+	uint64_t tmp_remaining_time = 0U;
   
-  ASSERT(remaining_time != NULL, E_NULL_POINTER);
+	ASSERT(remaining_time != NULL, E_NULL_POINTER);
   
-  gettimeofday(&curr_time, NULL);
+	gettimeofday(&curr_time, NULL);
   
-  if(curr_time.tv_sec < start_time.tv_sec)
+	if(curr_time.tv_sec < start_time.tv_sec)
     {
-      return(ERROR);
+		return(ERROR);
     }
-  else
+	else
     {
-      elapsed_time = (curr_time.tv_sec - start_time.tv_sec) +
-	((curr_time.tv_usec - start_time.tv_usec)/1000000U);
+		elapsed_time = (curr_time.tv_sec - start_time.tv_sec) +
+			((curr_time.tv_usec - start_time.tv_usec)/1000000U);
       
-      tmp_remaining_time = exp_timeout - elapsed_time;
-      if(tmp_remaining_time > 0xFFU)
-	{
-	  return(ERROR);
-	}
-      else
-	{
-	  *remaining_time = (uint8_t)tmp_remaining_time;
-	}
+		tmp_remaining_time = exp_timeout - elapsed_time;
+		if(tmp_remaining_time > 0xFFU)
+		{
+			return(ERROR);
+		}
+		else
+		{
+			*remaining_time = (uint8_t)tmp_remaining_time;
+		}
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -813,10 +819,10 @@ static error_code_t evaluateRemainingTime /** @return SUCCESS if the difference 
  */
 static error_code_t receiveMsg  /** @return SUCCESS if the read operation succeds, ERROR if the receiveTLS() call fails or if the timeout expires without receiving new data. */
 (
- read_stream_t* const istream,  /**< [out] Struct where the message read is stored.*/   
- const uint8_t timeout,         /**< [in]  The application timeout*/   
- const tls_des_t tls_id         /**< [in]  Identifier of the TLS connection */   
- )
+	read_stream_t* const istream,  /**< [out] Struct where the message read is stored.*/   
+	const uint8_t timeout,         /**< [in]  The application timeout*/   
+	const tls_des_t tls_id         /**< [in]  Identifier of the TLS connection */   
+	)
 {
 	ASSERT(istream != NULL, E_NULL_POINTER);
 
@@ -849,40 +855,40 @@ static error_code_t receiveMsg  /** @return SUCCESS if the read operation succed
  *
  * This function prepares and serializes in net format a message of type NOTIF_SESSION_INIT to the peer entity
  * specified in the field curr_session->peerEtcsIDExp using the TLS connection identifier curr_session->tlsID.
-  * The function calls the exit() function on any erorr on the addressing of the input parameters.
+ * The function calls the exit() function on any erorr on the addressing of the input parameters.
  */
 static error_code_t sendNotifSessionInit /** @return SUCCESS if the message is correctly sent, ERROR if the call sendMsg() fails. */
 (
- const session_t* const curr_session  /**< [in] The structure storing the information about the current application session.*/   
- )
+	const session_t* const curr_session  /**< [in] The structure storing the information about the current application session.*/   
+	)
 {
-  uint32_t msg_length = 0U;
-  uint8_t tmp_num_version = NUM_VERSION;
-  write_stream_t ostream;
+	uint32_t msg_length = 0U;
+	uint8_t tmp_num_version = NUM_VERSION;
+	write_stream_t ostream;
   
-  ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
   
-  /* initialize output buffer */
-  initWriteStream(&ostream);
+	/* initialize output buffer */
+	initWriteStream(&ostream);
   
-  /* evaluate message length */
-  msg_length = NOTIF_SESSION_INIT_SIZE;
+	/* evaluate message length */
+	msg_length = NOTIF_SESSION_INIT_SIZE;
   
-  /* prepare msg header */
-  buildMsgHeader(&ostream, msg_length, NOTIF_SESSION_INIT,
-		 curr_session->peerEtcsIDExp, curr_session->transNum);
+	/* prepare msg header */
+	buildMsgHeader(&ostream, msg_length, NOTIF_SESSION_INIT,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
   
-  /* serialize payload */
-  hostToNet8(&ostream, &tmp_num_version, sizeof(uint8_t));
-  hostToNet8(&ostream, supportedVersion, NUM_VERSION*sizeof(uint8_t));
-  hostToNet8(&ostream, &curr_session->appTimeout, sizeof(uint8_t));
+	/* serialize payload */
+	hostToNet8(&ostream, &tmp_num_version, sizeof(uint8_t));
+	hostToNet8(&ostream, supportedVersion, NUM_VERSION*sizeof(uint8_t));
+	hostToNet8(&ostream, &curr_session->appTimeout, sizeof(uint8_t));
   
-  if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -895,34 +901,34 @@ static error_code_t sendNotifSessionInit /** @return SUCCESS if the message is c
  */
 static error_code_t sendNotifSessionEnd /** @return SUCCESS if the message is correctly sent, ERROR if the call sendMsg() fails. */
 (
- const session_t* const curr_session /**< [in]  The structure holding the information about the current application session.*/   
- )
+	const session_t* const curr_session /**< [in]  The structure holding the information about the current application session.*/   
+	)
 {
-  uint32_t msg_length = 0U;
-  write_stream_t ostream;
-  uint32_t tmp_trans_num = 0U;
+	uint32_t msg_length = 0U;
+	write_stream_t ostream;
+	uint32_t tmp_trans_num = 0U;
   
-  ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
   
-  /* the transaction number for end
-     session shall be set to 0 */
-  tmp_trans_num = 0U;
+	/* the transaction number for end
+	   session shall be set to 0 */
+	tmp_trans_num = 0U;
   
-  /* prepare output buffer */
-  initWriteStream(&ostream);
+	/* prepare output buffer */
+	initWriteStream(&ostream);
   
-  /* prepare message header */
-  msg_length = NOTIF_END_UPDATE_SIZE;
+	/* prepare message header */
+	msg_length = NOTIF_END_UPDATE_SIZE;
   
-  buildMsgHeader(&ostream, msg_length, NOTIF_END_OF_UPDATE,
-		 curr_session->peerEtcsIDExp, tmp_trans_num);
+	buildMsgHeader(&ostream, msg_length, NOTIF_END_OF_UPDATE,
+				   curr_session->peerEtcsIDExp, tmp_trans_num);
   
-  if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -938,71 +944,71 @@ static error_code_t sendNotifSessionEnd /** @return SUCCESS if the message is co
  */
 static error_code_t waitForSessionInit   /** @return SUCCESS if the message is correctly received and is a valid NOTIF_SESSION_INIT message, ERROR in case of errors in the reception of the message(i.e. connection timeout) or if the message has not a valid header.*/
 (
- notif_session_init_t* const payload, /**< [out]    The structure holding the body of the NOTIF_SESSION_INIT message*/   
- response_reason_t* const result,     /**< [out]    The result of the validation of the message.*/   
- session_t* const curr_session        /**< [in/out] The structure holding the information about the current application session.*/   
- )
+	notif_session_init_t* const payload, /**< [out]    The structure holding the body of the NOTIF_SESSION_INIT message*/   
+	response_reason_t* const result,     /**< [out]    The result of the validation of the message.*/   
+	session_t* const curr_session        /**< [in/out] The structure holding the information about the current application session.*/   
+	)
 {
-  read_stream_t input_msg;
-  msg_header_t header;
-  uint8_t remaining_time = 0U;
+	read_stream_t input_msg;
+	msg_header_t header;
+	uint8_t remaining_time = 0U;
   
-  ASSERT(payload != NULL, E_NULL_POINTER);
-  ASSERT(result != NULL, E_NULL_POINTER);
-  ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(payload != NULL, E_NULL_POINTER);
+	ASSERT(result != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
   
-  initReadStream(&input_msg);
+	initReadStream(&input_msg);
   
-  /* evaluate difference between start  time and
-     current time in order to use the real app timeout value */
-  if(evaluateRemainingTime(&remaining_time, curr_session->startTime, (uint8_t)INIT_CONNECTION_TIMEOUT) != SUCCESS)
+	/* evaluate difference between start  time and
+	   current time in order to use the real app timeout value */
+	if(evaluateRemainingTime(&remaining_time, curr_session->startTime, (uint8_t)INIT_CONNECTION_TIMEOUT) != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  if( receiveMsg(&input_msg, remaining_time, curr_session->tlsID) != SUCCESS )
+	if( receiveMsg(&input_msg, remaining_time, curr_session->tlsID) != SUCCESS )
     {
-      return (ERROR);
+		return (ERROR);
     }
   
-  /* reset the start time */
-  gettimeofday(&(curr_session->startTime), NULL);
+	/* reset the start time */
+	gettimeofday(&(curr_session->startTime), NULL);
   
-  if(convertMsgHeaderToHost(&header, &input_msg) != SUCCESS)
+	if(convertMsgHeaderToHost(&header, &input_msg) != SUCCESS)
     {
-      *result = RESP_WRONG_FORMAT;
-      return(ERROR);
+		*result = RESP_WRONG_FORMAT;
+		return(ERROR);
     }
    
-  checkMsgHeader(result, curr_session, &header, input_msg.validBytes);
-  if( *result != RESP_OK)
+	checkMsgHeader(result, curr_session, &header, input_msg.validBytes);
+	if( *result != RESP_OK)
     {
-      warning_print("Error on checking header\n");
-      return(ERROR);
+		warning_print("Error on checking header\n");
+		return(ERROR);
     }
-  else
+	else
     {
-      if( header.msgType != NOTIF_SESSION_INIT )
-	{
-	  warning_print("Unexpected msg type received: rec %d\n", header.msgType);
-	  *result = RESP_NOT_SUPPORTED;
-	  return(ERROR);
-	}
-      else
-	{
-	  if(convertNotifSessionInitToHost((notif_session_init_t*)payload, &input_msg) != SUCCESS)
-	    {
-	      *result = RESP_WRONG_FORMAT;
-	      return(ERROR);
-	    }
-	}
+		if( header.msgType != NOTIF_SESSION_INIT )
+		{
+			warning_print("Unexpected msg type received: rec %d\n", header.msgType);
+			*result = RESP_NOT_SUPPORTED;
+			return(ERROR);
+		}
+		else
+		{
+			if(convertNotifSessionInitToHost((notif_session_init_t*)payload, &input_msg) != SUCCESS)
+			{
+				*result = RESP_WRONG_FORMAT;
+				return(ERROR);
+			}
+		}
       
-      /* initialize peerSeqNumber */
-      curr_session->peerSeqNum = header.seqNum;
-      *result = RESP_OK;
+		/* initialize peerSeqNumber */
+		curr_session->peerSeqNum = header.seqNum;
+		*result = RESP_OK;
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -1016,9 +1022,9 @@ static error_code_t waitForSessionInit   /** @return SUCCESS if the message is c
  */
 static error_code_t sendCmdAddKeys    /** @return SUCCESS if the message is correctly prepared and sent, ERROR if the sendMsg() call fails. */
 (
- const request_t* const request,      /**< [in] The pointer to the structure holding the list of k-struct structures to be sent.*/     		  
- const session_t* const curr_session  /**< [in] The pointer the structure holding the information about the current application session.*/   
- )
+	const request_t* const request,      /**< [in] The pointer to the structure holding the list of k-struct structures to be sent.*/     		  
+	const session_t* const curr_session  /**< [in] The pointer the structure holding the information about the current application session.*/   
+	)
 {
 	uint32_t i = 0U;
 	uint32_t j = 0U;
@@ -1037,7 +1043,7 @@ static error_code_t sendCmdAddKeys    /** @return SUCCESS if the message is corr
 
 	for(k = 0U; k < request->reqNum; k++)
 	{
-	  msg_length += request->kStructList[k].peerNum*sizeof(uint32_t);
+		msg_length += request->kStructList[k].peerNum*sizeof(uint32_t);
 	}
 	
 	buildMsgHeader(&ostream, msg_length, CMD_ADD_KEYS,
@@ -1085,42 +1091,42 @@ static error_code_t sendCmdAddKeys    /** @return SUCCESS if the message is corr
  */
 static error_code_t sendCmdDeleteKeys /** @return SUCCESS if the message is correctly prepared and sent, ERROR if the sendMsg() call fails. */ 
 (				                                                                                                               
- const request_t* const request,      /**< [in] The pointer to the structure holding the list of k-identifier structures to be sent.*/		       
- const session_t* const curr_session  /**< [in] The pointer the structure holding the information about the current application session.*/     
- )
+	const request_t* const request,      /**< [in] The pointer to the structure holding the list of k-identifier structures to be sent.*/		       
+	const session_t* const curr_session  /**< [in] The pointer the structure holding the information about the current application session.*/     
+	)
 {
-  uint32_t msg_length = 0U;
-  uint32_t i = 0U;
-  write_stream_t ostream;
+	uint32_t msg_length = 0U;
+	uint32_t i = 0U;
+	write_stream_t ostream;
   
-  ASSERT((curr_session != NULL) && (request != NULL), E_NULL_POINTER);
-  ASSERT(request->reqNum < MAX_REQ_DEL_KEYS,  E_INVALID_PARAM);
+	ASSERT((curr_session != NULL) && (request != NULL), E_NULL_POINTER);
+	ASSERT(request->reqNum < MAX_REQ_DEL_KEYS,  E_INVALID_PARAM);
   
-  /* prepare output buffer */
-  initWriteStream(&ostream);
+	/* prepare output buffer */
+	initWriteStream(&ostream);
   
-  /* prepare message header */
-  msg_length = CMD_DEL_KEYS_MIN_SIZE + (K_IDENT_SIZE * request->reqNum);
+	/* prepare message header */
+	msg_length = CMD_DEL_KEYS_MIN_SIZE + (K_IDENT_SIZE * request->reqNum);
   
-  buildMsgHeader(&ostream, msg_length, CMD_DELETE_KEYS,
-		 curr_session->peerEtcsIDExp, curr_session->transNum);
+	buildMsgHeader(&ostream, msg_length, CMD_DELETE_KEYS,
+				   curr_session->peerEtcsIDExp, curr_session->transNum);
   
-  /* serialize request */
-  hostToNet16(&ostream, request->reqNum);
+	/* serialize request */
+	hostToNet16(&ostream, request->reqNum);
   
-  for(i = 0U; i < request->reqNum; i++)
+	for(i = 0U; i < request->reqNum; i++)
     {
-      hostToNet32(&ostream, request->kIdentList[i].genID);
-      hostToNet32(&ostream, request->kIdentList[i].serNum);
+		hostToNet32(&ostream, request->kIdentList[i].genID);
+		hostToNet32(&ostream, request->kIdentList[i].serNum);
     }
 
-  /* send the message */
-  if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
+	/* send the message */
+	if(sendMsg(&ostream, curr_session->tlsID) != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -1134,9 +1140,9 @@ static error_code_t sendCmdDeleteKeys /** @return SUCCESS if the message is corr
  */
 static error_code_t sendCmdUpKeyValidities /** @return SUCCESS if the message is correctly prepared and sent, ERROR if the sendMsg() call fails. */  
 (					                                                                                                             
- const request_t* const request,           /**< [in] The pointer to the structure holding the list of k-validity structures to be sent.*/
- const session_t* const curr_session	   /**< [in] The pointer the structure holding the information about the current application session.*/
-																		     )
+	const request_t* const request,           /**< [in] The pointer to the structure holding the list of k-validity structures to be sent.*/
+	const session_t* const curr_session	   /**< [in] The pointer the structure holding the information about the current application session.*/
+	)
 {
 	uint32_t msg_length = 0U;
 	uint32_t i = 0U;
@@ -1184,9 +1190,9 @@ static error_code_t sendCmdUpKeyValidities /** @return SUCCESS if the message is
  */
 static error_code_t sendCmdUpKeyEntities /** @return SUCCESS if the message is correctly prepared and sent, ERROR if the sendMsg() call fails. */  
 (					                                                                                                           
- const request_t* const request,  	 /**< [in] The pointer to the structure holding the list of k-entities structures to be sent.*/		     
- const session_t* const curr_session	 /**< [in] The pointer the structure holding the information about the current application session.*/      
- )
+	const request_t* const request,  	 /**< [in] The pointer to the structure holding the list of k-entities structures to be sent.*/		     
+	const session_t* const curr_session	 /**< [in] The pointer the structure holding the information about the current application session.*/      
+	)
 {
 	uint32_t i = 0U;
 	uint32_t j = 0U;
@@ -1244,8 +1250,8 @@ static error_code_t sendCmdUpKeyEntities /** @return SUCCESS if the message is c
  */
 static error_code_t sendCmdDeleteAllKeys /** @return SUCCESS if the message is correctly prepared and sent, ERROR if the sendMsg() call fails. */  
 (
- const session_t* const curr_session     /**< [in] The pointer the structure holding the information about the current application session.*/      
- )
+	const session_t* const curr_session     /**< [in] The pointer the structure holding the information about the current application session.*/      
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1280,8 +1286,8 @@ static error_code_t sendCmdDeleteAllKeys /** @return SUCCESS if the message is c
  */
 static error_code_t sendCmdReqKeyDBChecksum /** @return SUCCESS if the message is correctly prepared and sent, ERROR if the sendMsg() call fails. */  
 (
- const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/      
- )
+	const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/      
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1315,9 +1321,9 @@ static error_code_t sendCmdReqKeyDBChecksum /** @return SUCCESS if the message i
  */
 static error_code_t sendCmdReqKeyOperation /** @return SUCCESS if the message is correctly prepared and sent, ERROR if the sendMsg() call fails. */  
 (
- const request_t* const request,     /**< [in] The pointer to the structure holding the body of message to be sent.*/
- const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/      
- )
+	const request_t* const request,     /**< [in] The pointer to the structure holding the body of message to be sent.*/
+	const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/      
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1367,9 +1373,9 @@ static error_code_t sendCmdReqKeyOperation /** @return SUCCESS if the message is
  */
 static error_code_t sendNotifKeyUpdateStatus /** @return SUCCESS if the message is correctly prepared and sent, ERROR if the sendMsg() call fails. */  
 (
- const request_t* const request,     /**< [in] The pointer to the structure holding the body of message to be sent.*/
- const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/
- )
+	const request_t* const request,     /**< [in] The pointer to the structure holding the body of message to be sent.*/
+	const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1415,9 +1421,9 @@ static error_code_t sendNotifKeyUpdateStatus /** @return SUCCESS if the message 
  */
 error_code_t sendNotifKeyDBChecksum /** @return SUCCESS if the message is correctly prepared and sent, ERROR if the sendMsg() call fails. */  
 (
- const response_t* const response,   /**< [in] The pointer to the structure holding the checksum of the database.*/
- const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/
- )
+	const response_t* const response,   /**< [in] The pointer to the structure holding the checksum of the database.*/
+	const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1455,9 +1461,9 @@ error_code_t sendNotifKeyDBChecksum /** @return SUCCESS if the message is correc
  */
 error_code_t sendNotifResponse /** @return SUCCESS if the message is correctly prepared and sent, ERROR if the sendMsg() call fails. */  
 (
- const response_t* const response,   /**< [in] The pointer to the structure holding the message body.*/
- const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/
- )
+	const response_t* const response,   /**< [in] The pointer to the structure holding the message body.*/
+	const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1502,9 +1508,9 @@ error_code_t sendNotifResponse /** @return SUCCESS if the message is correctly p
  */
 error_code_t sendNotifKeyOpReqRcvd /** @return SUCCESS if the message is correctly prepared and sent, ERROR if the sendMsg() call fails. */  
 (
- const response_t* const response,   /**< [in] The pointer to the structure holding the message body.*/
- const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/
- )
+	const response_t* const response,   /**< [in] The pointer to the structure holding the message body.*/
+	const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1542,8 +1548,8 @@ error_code_t sendNotifKeyOpReqRcvd /** @return SUCCESS if the message is correct
  */
 error_code_t sendNotifAckKeyUpStatus /** @return SUCCESS if the message is correctly prepared and sent, ERROR if the sendMsg() call fails. */  
 (
- const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/
- )
+	const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/
+	)
 {
 	uint32_t msg_length = 0U;
 	write_stream_t ostream;
@@ -1576,20 +1582,20 @@ error_code_t sendNotifAckKeyUpStatus /** @return SUCCESS if the message is corre
  */
 error_code_t startClientTLS /** @return SUCCESS in case of initilization success, ERROR if the initClientTLS() call fails  */
 (
- tls_des_t* const tls_id    /**< [out] The identifier of the TLS connection.*/     
- )
+	tls_des_t* const tls_id    /**< [out] The identifier of the TLS connection.*/     
+	)
 {
-  ASSERT(tls_id != NULL, E_NULL_POINTER);
+	ASSERT(tls_id != NULL, E_NULL_POINTER);
   
-  if(initClientTLS(tls_id,
-				   ss137_lib_config.rsaCACertificateFile,
-				   ss137_lib_config.rsaKey,
-				   ss137_lib_config.rsaCertificate) != TLS_SUCCESS)
+	if(initClientTLS(tls_id,
+					 ss137_lib_config.rsaCACertificateFile,
+					 ss137_lib_config.rsaKey,
+					 ss137_lib_config.rsaCertificate) != TLS_SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -1600,18 +1606,18 @@ error_code_t startClientTLS /** @return SUCCESS in case of initilization success
  */
 error_code_t connectToTLSServer /** @return SUCCESS if the connection is enstablished, ERROR if the connectTLS() call fails  */
 (
- const tls_des_t const tls_id,  /**< [in] The identifier of the TLS connection enstablished*/     
- const char* const server_ip    /**< [in] The server ip given in ASCII format(eg 10.0.1.200).*/     
- )
+	const tls_des_t const tls_id,  /**< [in] The identifier of the TLS connection enstablished*/     
+	const char* const server_ip    /**< [in] The server ip given in ASCII format(eg 10.0.1.200).*/     
+	)
 {
-  ASSERT(server_ip != NULL, E_NULL_POINTER);
+	ASSERT(server_ip != NULL, E_NULL_POINTER);
   
-  if(connectTLS(tls_id, server_ip, SS137_TCP_PORT) != TLS_SUCCESS)
+	if(connectTLS(tls_id, server_ip, SS137_TCP_PORT) != TLS_SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -1623,19 +1629,19 @@ error_code_t connectToTLSServer /** @return SUCCESS if the connection is enstabl
  */
 error_code_t startServerTLS /** @return SUCCESS in case of initilization success, ERROR if the initServerTLS() call fails  */
 (
-void
+	void
 	)
 {
 
-  if(initServerTLS(SS137_TCP_PORT,
-				   ss137_lib_config.rsaCACertificateFile,
-				   ss137_lib_config.rsaKey,
-				   ss137_lib_config.rsaCertificate) != TLS_SUCCESS)
+	if(initServerTLS(SS137_TCP_PORT,
+					 ss137_lib_config.rsaCACertificateFile,
+					 ss137_lib_config.rsaKey,
+					 ss137_lib_config.rsaCertificate) != TLS_SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -1648,55 +1654,55 @@ void
  */
 error_code_t listenForTLSClient /** @return SUCCESS in case of initilization success, ERROR if the acceptTLS() call fails or there is no KMS Entity configured with the corresponding ip address  */
 (
- tls_des_t* const tls_id,     /**< [out] The identifier of the TLS connection enstablished*/     
- uint32_t* const exp_etcs_id  /**< [out] The Expanded ETCS Id of the client connected.*/     
- )
+	tls_des_t* const tls_id,     /**< [out] The identifier of the TLS connection enstablished*/     
+	uint32_t* const exp_etcs_id  /**< [out] The Expanded ETCS Id of the client connected.*/     
+	)
 {
 	uint32_t i = 0U;
 	bool_t found = FALSE;
 	char client_ip[MAX_IP_LENGTH] = {0,};
 	
-  ASSERT(tls_id != NULL, E_NULL_POINTER);
-  ASSERT(exp_etcs_id != NULL, E_NULL_POINTER);
+	ASSERT(tls_id != NULL, E_NULL_POINTER);
+	ASSERT(exp_etcs_id != NULL, E_NULL_POINTER);
   
-  if(acceptTLS(tls_id, client_ip) != TLS_SUCCESS)
+	if(acceptTLS(tls_id, client_ip) != TLS_SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  log_print("Connection from client %s\n", client_ip);
+	log_print("Connection from client %s\n", client_ip);
   
-  /* look for the corresponding expanded etcs id */
-  for(i = 0U; i < MAX_KMS_ENTITIES; i++)
-  {
-	  if(strcmp(ss137_lib_config.kmsEntitiesId[i].ip, client_ip) == 0)
-	  {
-		  *exp_etcs_id = ss137_lib_config.kmsEntitiesId[i].expEtcsId;
-		  found = TRUE;
-	  }
-  }
+	/* look for the corresponding expanded etcs id */
+	for(i = 0U; i < MAX_KMS_ENTITIES; i++)
+	{
+		if(strcmp(ss137_lib_config.kmsEntitiesId[i].ip, client_ip) == 0)
+		{
+			*exp_etcs_id = ss137_lib_config.kmsEntitiesId[i].expEtcsId;
+			found = TRUE;
+		}
+	}
 
-  if(found == FALSE)
-  {
-	  return(ERROR);
-  }
+	if(found == FALSE)
+	{
+		return(ERROR);
+	}
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
- * Closes a  TLS connection.
+ * Closes a TLS connection.
  *
- * This function the TLS connection corresponding to the connection identifier passed as argument. 
+ * This function closes the TLS connection corresponding to the connection identifier passed as argument. 
  */
-void closeTLSConnection /** @return error code */
+void closeTLSConnection /** @return void */
 (
- const tls_des_t tls_id      /**< [in] The identifier of the connection to close*/     
- )
+	const tls_des_t tls_id /**< [in] The identifier of the connection to close*/     
+	)
 {
-  closeTLS(tls_id);
+	closeTLS(tls_id);
 
-  return;
+	return;
 }
 
 /**
@@ -1712,94 +1718,94 @@ void closeTLSConnection /** @return error code */
  */
 error_code_t waitForRequestFromKMCToKMAC /** @return SUCCESS if te request is considered valid, ERROR if the timeout expires without receiving new request or if the message is not valid */
 (
- request_t* const request,      /**< [out]    The pointer to the structure holding the request from the KMC*/     			     
- session_t* const curr_session  /**< [in/out] The pointer the structure holding the information about the current application session.*/     
- )
+	request_t* const request,      /**< [out]    The pointer to the structure holding the request from the KMC*/     			     
+	session_t* const curr_session  /**< [in/out] The pointer the structure holding the information about the current application session.*/     
+	)
 {
-  read_stream_t input_msg;
-  msg_header_t header;
-  response_reason_t result;
-  response_t error_response;
-  error_code_t tmp_error = SUCCESS;
+	read_stream_t input_msg;
+	msg_header_t header;
+	response_reason_t result;
+	response_t error_response;
+	error_code_t tmp_error = SUCCESS;
   
-  ASSERT(request != NULL, E_NULL_POINTER);
-  ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(request != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
   
-  memset(&error_response, 0U, sizeof(response_t));
+	memset(&error_response, 0U, sizeof(response_t));
   
-  initReadStream(&input_msg);
+	initReadStream(&input_msg);
   
-  if(receiveMsg(&input_msg, curr_session->appTimeout, curr_session->tlsID) != SUCCESS)
+	if(receiveMsg(&input_msg, curr_session->appTimeout, curr_session->tlsID) != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  /* reset the start time */
-  gettimeofday(&(curr_session->startTime), NULL);
+	/* reset the start time */
+	gettimeofday(&(curr_session->startTime), NULL);
   
-  if(convertMsgHeaderToHost(&header, &input_msg) != SUCCESS)
+	if(convertMsgHeaderToHost(&header, &input_msg) != SUCCESS)
     {
-      error_response.notifPayload.reason = RESP_WRONG_FORMAT;
-      sendNotifResponse(&error_response, curr_session);
-      return(ERROR);
+		error_response.notifPayload.reason = RESP_WRONG_FORMAT;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
     }
   
-  checkMsgHeader(&result, curr_session, &header, input_msg.validBytes);
+	checkMsgHeader(&result, curr_session, &header, input_msg.validBytes);
   
-  if(result != RESP_OK)
+	if(result != RESP_OK)
     {
-      error_response.notifPayload.reason = result;
-      sendNotifResponse(&error_response, curr_session);
-      return(ERROR);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
     }
   
-  switch(header.msgType)
+	switch(header.msgType)
     {
     case(CMD_ADD_KEYS):
-      tmp_error = convertCmdAddKeysToHost(request, &input_msg);
-      request->msgType = header.msgType;
-      break;
+		tmp_error = convertCmdAddKeysToHost(request, &input_msg);
+		request->msgType = header.msgType;
+		break;
     case(CMD_DELETE_KEYS):
-      tmp_error = convertCmdDeleteKeysToHost(request, &input_msg);
-      request->msgType = header.msgType;
-      break;
+		tmp_error = convertCmdDeleteKeysToHost(request, &input_msg);
+		request->msgType = header.msgType;
+		break;
     case(CMD_DELETE_ALL_KEYS):
-      /* this message has no request */
-      request->msgType = header.msgType;
-      break;
+		/* this message has no request */
+		request->msgType = header.msgType;
+		break;
     case(CMD_UPDATE_KEY_VALIDITIES):
-      tmp_error = convertCmdUpKeyValiditiesToHost(request, &input_msg);
-      request->msgType = header.msgType;
-      break;
+		tmp_error = convertCmdUpKeyValiditiesToHost(request, &input_msg);
+		request->msgType = header.msgType;
+		break;
     case(CMD_UPDATE_KEY_ENTITIES):
-      tmp_error = convertCmdUpKeyEntitiesToHost(request, &input_msg);
-      request->msgType = header.msgType;
-      break;
+		tmp_error = convertCmdUpKeyEntitiesToHost(request, &input_msg);
+		request->msgType = header.msgType;
+		break;
     case(CMD_REQUEST_KEY_DB_CHECKSUM):
-      /* this message has no payload */
-      request->msgType = header.msgType;
-      break;
+		/* this message has no payload */
+		request->msgType = header.msgType;
+		break;
     case(NOTIF_END_OF_UPDATE):
-      /* this message has no payload */
-      request->msgType = header.msgType;
-      break;
+		/* this message has no payload */
+		request->msgType = header.msgType;
+		break;
     default:
-      err_print("Unexpected msg type received: rec %d\n", header.msgType);
-      error_response.notifPayload.reason = RESP_NOT_SUPPORTED;
-      sendNotifResponse(&error_response, curr_session);
-      return(ERROR);
+		err_print("Unexpected msg type received: rec %d\n", header.msgType);
+		error_response.notifPayload.reason = RESP_NOT_SUPPORTED;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
     }
   
-  if(tmp_error != SUCCESS)
+	if(tmp_error != SUCCESS)
     {
-      error_response.notifPayload.reason = RESP_WRONG_FORMAT;
-      sendNotifResponse(&error_response, curr_session);
-      return(ERROR);
+		error_response.notifPayload.reason = RESP_WRONG_FORMAT;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
     }
   
-  curr_session->transNum = header.transNum;
+	curr_session->transNum = header.transNum;
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -1815,9 +1821,9 @@ error_code_t waitForRequestFromKMCToKMAC /** @return SUCCESS if te request is co
  */
 error_code_t waitForRequestFromKMCToKMC  /** @return SUCCESS if the request is considered valid, ERROR if the timeout expires without receiving new request or if the message is not valid */
 (
- request_t* const request,     /**< [out]    The pointer to the structure holding the request from the KMC*/
- session_t* const curr_session /**< [in/out] The pointer the structure holding the information about the current application session.*/
- )
+	request_t* const request,     /**< [out]    The pointer to the structure holding the request from the KMC*/
+	session_t* const curr_session /**< [in/out] The pointer the structure holding the information about the current application session.*/
+	)
 {
 	read_stream_t input_msg;
 	msg_header_t header;
@@ -1841,11 +1847,11 @@ error_code_t waitForRequestFromKMCToKMC  /** @return SUCCESS if the request is c
 	gettimeofday(&(curr_session->startTime), NULL);
 
 	if(convertMsgHeaderToHost(&header, &input_msg) != SUCCESS)
-	  {
+	{
 		error_response.notifPayload.reason = RESP_WRONG_FORMAT;
 		sendNotifResponse(&error_response, curr_session);
 		return(ERROR);
-	  }
+	}
 	
 	checkMsgHeader(&result, curr_session, &header, input_msg.validBytes);
 
@@ -1894,11 +1900,11 @@ error_code_t waitForRequestFromKMCToKMC  /** @return SUCCESS if the request is c
 	}
 	
 	if(tmp_error != SUCCESS)
-	  {
+	{
 	    error_response.notifPayload.reason = RESP_WRONG_FORMAT;
 	    sendNotifResponse(&error_response, curr_session);
 	    return(ERROR);
-	  }
+	}
 
 	return(SUCCESS);
 }
@@ -1917,82 +1923,82 @@ error_code_t waitForRequestFromKMCToKMC  /** @return SUCCESS if the request is c
  */
 static error_code_t waitForResponse    /** @return SUCCESS if the response is considered valid, ERROR if the timeout expires without receiving the reponse or if the response message is not valid */
 (
- response_t* const response,      /**< [out]    The pointer to the structure holding the body of the response message received.*/       
- response_reason_t* const result, /**< [out]    The result of the validation of the response message received.*/       
- session_t* const curr_session,   /**< [in/out] The pointer the structure holding the information about the current application session.*/       
- const msg_type_t exp_msg_type    /**< [in]     The expected message type.*/       
- )
+	response_t* const response,      /**< [out]    The pointer to the structure holding the body of the response message received.*/       
+	response_reason_t* const result, /**< [out]    The result of the validation of the response message received.*/       
+	session_t* const curr_session,   /**< [in/out] The pointer the structure holding the information about the current application session.*/       
+	const msg_type_t exp_msg_type    /**< [in]     The expected message type.*/       
+	)
 {
-  msg_header_t header;
-  read_stream_t input_msg;
-  error_code_t tmp_error = SUCCESS;
+	msg_header_t header;
+	read_stream_t input_msg;
+	error_code_t tmp_error = SUCCESS;
   
-  ASSERT(response != NULL, E_NULL_POINTER);
-  ASSERT(curr_session != NULL, E_NULL_POINTER);	
-  ASSERT(result != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);	
+	ASSERT(result != NULL, E_NULL_POINTER);
   
-  initReadStream(&input_msg);
+	initReadStream(&input_msg);
   
-  if(receiveMsg(&input_msg, curr_session->appTimeout, curr_session->tlsID) != SUCCESS)
+	if(receiveMsg(&input_msg, curr_session->appTimeout, curr_session->tlsID) != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  /* reset the start time */
-  gettimeofday(&(curr_session->startTime), NULL);
+	/* reset the start time */
+	gettimeofday(&(curr_session->startTime), NULL);
   
-  if(convertMsgHeaderToHost(&header, &input_msg) != SUCCESS)
+	if(convertMsgHeaderToHost(&header, &input_msg) != SUCCESS)
     {
-      *result = RESP_WRONG_FORMAT;
-      return(ERROR);
+		*result = RESP_WRONG_FORMAT;
+		return(ERROR);
     }
   
-  checkMsgHeader(result, curr_session, &header, input_msg.validBytes);
+	checkMsgHeader(result, curr_session, &header, input_msg.validBytes);
   
-  if(*result != RESP_OK)
+	if(*result != RESP_OK)
     {
-      err_print("Error on checking header\n");
-      return(ERROR);
+		err_print("Error on checking header\n");
+		return(ERROR);
     }
-  else
+	else
     {
-      /* notif response could be received in case of error */
-      if((exp_msg_type != header.msgType ) &&
-		 (exp_msg_type != NOTIF_RESPONSE))
-	  {
-	  err_print("Unexpected msg type received: rec %d\n", header.msgType);
-	  *result = RESP_NOT_SUPPORTED;
-	  return(ERROR);
-	}
-      else
-	{
-	  switch(header.msgType)
-	    {
-	    case(NOTIF_RESPONSE):
-	      tmp_error = convertNotifResponseToHost(response, &input_msg);
-	      break;
-	    case(NOTIF_KEY_DB_CHECKSUM):
-	      tmp_error = convertNotifKeyDBChecksumToHost(response, &input_msg);
-	      break;
-	    case(NOTIF_KEY_OPERATION_REQ_RCVD):
-	      tmp_error = convertNotifKeyOpReqRcvdToHost(response, &input_msg);
-	      break;
-	    case(NOTIF_ACK_KEY_UPDATE_STATUS):
-	      /* this message has no payload */
-	      break;
-	    default:
-	      *result = RESP_NOT_SUPPORTED;
-	      return(ERROR);
-	    }
-	  if(tmp_error != SUCCESS)
-	    {
-	      *result = RESP_WRONG_FORMAT;
-	      return(ERROR);
-	    }
-	}
+		/* notif response could be received in case of error */
+		if((exp_msg_type != header.msgType ) &&
+		   (exp_msg_type != NOTIF_RESPONSE))
+		{
+			err_print("Unexpected msg type received: rec %d\n", header.msgType);
+			*result = RESP_NOT_SUPPORTED;
+			return(ERROR);
+		}
+		else
+		{
+			switch(header.msgType)
+			{
+			case(NOTIF_RESPONSE):
+				tmp_error = convertNotifResponseToHost(response, &input_msg);
+				break;
+			case(NOTIF_KEY_DB_CHECKSUM):
+				tmp_error = convertNotifKeyDBChecksumToHost(response, &input_msg);
+				break;
+			case(NOTIF_KEY_OPERATION_REQ_RCVD):
+				tmp_error = convertNotifKeyOpReqRcvdToHost(response, &input_msg);
+				break;
+			case(NOTIF_ACK_KEY_UPDATE_STATUS):
+				/* this message has no payload */
+				break;
+			default:
+				*result = RESP_NOT_SUPPORTED;
+				return(ERROR);
+			}
+			if(tmp_error != SUCCESS)
+			{
+				*result = RESP_WRONG_FORMAT;
+				return(ERROR);
+			}
+		}
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -2012,57 +2018,57 @@ static error_code_t waitForResponse    /** @return SUCCESS if the response is co
  */
 error_code_t initAppSession  /** @return SUCCESS if the response is considered valid, ERROR if the timeout expires without receiving the notif_session_init message or if the message is not valid. */
 (
- session_t* const curr_session,  /**< [in/out] The pointer the structure holding the information about the current application session.*/
- const uint8_t app_timeout,      /**< [in]     The application timeout.*/       
- const uint32_t peer_etcs_id_exp /**< [in]     The Expanded ETCS id of the other peer.*/       
- )
+	session_t* const curr_session,  /**< [in/out] The pointer the structure holding the information about the current application session.*/
+	const uint8_t app_timeout,      /**< [in]     The application timeout.*/       
+	const uint32_t peer_etcs_id_exp /**< [in]     The Expanded ETCS id of the other peer.*/       
+	)
 {
-  notif_session_init_t response;
-  response_reason_t result = RESP_OK;
-  response_t error_response;
+	notif_session_init_t response;
+	response_reason_t result = RESP_OK;
+	response_t error_response;
 
-  ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
   
-  memset(&error_response, 0U, sizeof(response_t));
+	memset(&error_response, 0U, sizeof(response_t));
 		
-  /* init session struct */
-  /* the transaction number for init
-     session shall be set to 0 */
-  curr_session->transNum = 0U;
-  curr_session->appTimeout = app_timeout;
-  curr_session->peerEtcsIDExp = peer_etcs_id_exp;
-  gettimeofday(&(curr_session->startTime), NULL);
+	/* init session struct */
+	/* the transaction number for init
+	   session shall be set to 0 */
+	curr_session->transNum = 0U;
+	curr_session->appTimeout = app_timeout;
+	curr_session->peerEtcsIDExp = peer_etcs_id_exp;
+	gettimeofday(&(curr_session->startTime), NULL);
 	
-  if(sendNotifSessionInit(curr_session) != SUCCESS)
+	if(sendNotifSessionInit(curr_session) != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
 
-  if(waitForSessionInit(&response, &result, curr_session) != SUCCESS)
+	if(waitForSessionInit(&response, &result, curr_session) != SUCCESS)
     {
-      error_response.notifPayload.reason = result;
-      sendNotifResponse(&error_response, curr_session);
-      return(ERROR);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
     }
-  else
+	else
     {
 		if( response.version[0] != supportedVersion[0] )
-	{
-	  error_response.notifPayload.reason = RESP_WRONG_VERSION;
-	  sendNotifResponse(&error_response, curr_session);
-	  return(ERROR);
-	}
+		{
+			error_response.notifPayload.reason = RESP_WRONG_VERSION;
+			sendNotifResponse(&error_response, curr_session);
+			return(ERROR);
+		}
 
-      /* negotiate app_timeout and verify interface version compatibility */
-      if(curr_session->appTimeout == APP_TIMEOUT_PEER_DEF)
-	{
-	  curr_session->appTimeout = response.appTimeout;
-	}
+		/* negotiate app_timeout and verify interface version compatibility */
+		if(curr_session->appTimeout == APP_TIMEOUT_PEER_DEF)
+		{
+			curr_session->appTimeout = response.appTimeout;
+		}
 
-      curr_session->transNum++;
+		curr_session->transNum++;
     }
 
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -2074,17 +2080,17 @@ error_code_t initAppSession  /** @return SUCCESS if the response is considered v
  */
 error_code_t endAppSession  /** @return SUCCESS if the message is correctly sent, ERROR if the call sendNotifSessionEnd() fails. */
 (
- const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/
- )
+	const session_t* const curr_session /**< [in] The pointer the structure holding the information about the current application session.*/
+	)
 {
-  ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
   
-  if(sendNotifSessionEnd(curr_session) != SUCCESS)
+	if(sendNotifSessionEnd(curr_session) != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -2100,45 +2106,45 @@ error_code_t endAppSession  /** @return SUCCESS if the message is correctly sent
  */
 error_code_t performAddKeysTransaction /** @return SUCCESS if the command is successfully sent and a valid response is received, ERROR in case of error on sending or receiving the message or if the response is not valid. */  
 (
- response_t* const response,      /**< [out]     The pointer to the structure holding the body of the NOTIF_RESPONSE message received.*/          
- session_t* const curr_session,   /**< [int/out] The pointer the structure holding the information about the current application session.*/          
- const request_t* const request   /**< [in]      The pointer to the structure holding the list of k-struct structures to be sent.*/     
- )
+	response_t* const response,      /**< [out]     The pointer to the structure holding the body of the NOTIF_RESPONSE message received.*/          
+	session_t* const curr_session,   /**< [int/out] The pointer the structure holding the information about the current application session.*/          
+	const request_t* const request   /**< [in]      The pointer to the structure holding the list of k-struct structures to be sent.*/     
+	)
 {
-  msg_type_t exp_msg_type = NOTIF_RESPONSE;
-  response_reason_t result;
-  response_t error_response;
+	msg_type_t exp_msg_type = NOTIF_RESPONSE;
+	response_reason_t result;
+	response_t error_response;
   
-  ASSERT(curr_session != NULL, E_NULL_POINTER);
-  ASSERT(response != NULL, E_NULL_POINTER);
-  ASSERT(request != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
+	ASSERT(request != NULL, E_NULL_POINTER);
   
-  memset(&error_response, 0U, sizeof(response_t));
+	memset(&error_response, 0U, sizeof(response_t));
   
-  if(sendCmdAddKeys(request, curr_session) != SUCCESS)
+	if(sendCmdAddKeys(request, curr_session) != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  if(waitForResponse(response,  &result, curr_session, exp_msg_type) != SUCCESS)
+	if(waitForResponse(response,  &result, curr_session, exp_msg_type) != SUCCESS)
     {
-      error_response.notifPayload.reason = result;
-      sendNotifResponse(&error_response, curr_session);
-      return(ERROR);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
     }
   
-  if ( request->reqNum != response->notifPayload.reqNum)
+	if ( request->reqNum != response->notifPayload.reqNum)
     {
-      error_response.notifPayload.reason = RESP_WRONG_FORMAT;
-      sendNotifResponse(&error_response, curr_session);
-      return(ERROR);
+		error_response.notifPayload.reason = RESP_WRONG_FORMAT;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
     }
-  else
+	else
     {
-      curr_session->transNum++;
+		curr_session->transNum++;
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -2157,42 +2163,42 @@ error_code_t performDelKeysTransaction /** @return SUCCESS if the command is suc
 	response_t* const response,    /**< [out]     The pointer to the structure holding the body of the NOTIF_RESPONSE message received.*/
 	session_t* const curr_session, /**< [int/out] The pointer the structure holding the information about the current application session.*/
 	const request_t* const request /**< [in]      The pointer to the structure holding the list of k-identifier structures to be sent.*/
- )
+	)
 {
-  msg_type_t exp_msg_type = NOTIF_RESPONSE;
-  response_reason_t result;
-  response_t error_response;
+	msg_type_t exp_msg_type = NOTIF_RESPONSE;
+	response_reason_t result;
+	response_t error_response;
   
-  ASSERT(curr_session != NULL, E_NULL_POINTER);
-  ASSERT(response != NULL, E_NULL_POINTER);
-  ASSERT(request != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
+	ASSERT(request != NULL, E_NULL_POINTER);
 	
-  memset(&error_response, 0U, sizeof(response_t));
+	memset(&error_response, 0U, sizeof(response_t));
   
-  if(sendCmdDeleteKeys(request, curr_session) != SUCCESS)
+	if(sendCmdDeleteKeys(request, curr_session) != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
+	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
     {
-      error_response.notifPayload.reason = result;
-      sendNotifResponse(&error_response, curr_session);
-      return(ERROR);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
     }
   
-  if ( request->reqNum != response->notifPayload.reqNum)
+	if ( request->reqNum != response->notifPayload.reqNum)
     {
-      error_response.notifPayload.reason = RESP_WRONG_FORMAT;
-      sendNotifResponse(&error_response, curr_session);
-      return(ERROR);
+		error_response.notifPayload.reason = RESP_WRONG_FORMAT;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
     }
-  else
+	else
     {
-      curr_session->transNum++;
+		curr_session->transNum++;
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -2208,10 +2214,10 @@ error_code_t performDelKeysTransaction /** @return SUCCESS if the command is suc
  */
 error_code_t performUpKeyValiditiesTransaction /** @return SUCCESS if the command is successfully sent and a valid response is received, ERROR in case of error on sending or receiving the message or if the response is not valid. */
 (
- response_t* const response,     /**< [out]     The pointer to the structure holding the body of the NOTIF_RESPONSE message received.*/
- session_t* const curr_session,  /**< [int/out] The pointer the structure holding the information about the current application session.*/
- const request_t* const request  /**< [in] The pointer to the structure holding the list of k-validity structures to be sent.*/
- )
+	response_t* const response,     /**< [out]     The pointer to the structure holding the body of the NOTIF_RESPONSE message received.*/
+	session_t* const curr_session,  /**< [int/out] The pointer the structure holding the information about the current application session.*/
+	const request_t* const request  /**< [in] The pointer to the structure holding the list of k-validity structures to be sent.*/
+	)
 {
 	msg_type_t exp_msg_type = NOTIF_RESPONSE;
 	response_reason_t result;
@@ -2262,10 +2268,10 @@ error_code_t performUpKeyValiditiesTransaction /** @return SUCCESS if the comman
  */
 error_code_t performUpKeyEntitiesTransaction  /** @return SUCCESS if the command is successfully sent and a valid response is received, ERROR in case of error on sending or receiving the message or if the response is not valid. */
 (
- response_t* const response,    /**< [out]     The pointer to the structure holding the body of the NOTIF_RESPONSE message received.*/
- session_t* const curr_session, /**< [int/out] The pointer the structure holding the information about the current application session.*/
- const request_t* const request /**< [in] The pointer to the structure holding the list of k-entity structures to be sent.*/
- )
+	response_t* const response,    /**< [out]     The pointer to the structure holding the body of the NOTIF_RESPONSE message received.*/
+	session_t* const curr_session, /**< [int/out] The pointer the structure holding the information about the current application session.*/
+	const request_t* const request /**< [in] The pointer to the structure holding the list of k-entity structures to be sent.*/
+	)
 {
 	msg_type_t exp_msg_type = NOTIF_RESPONSE;
 	response_reason_t result;
@@ -2316,36 +2322,36 @@ error_code_t performUpKeyEntitiesTransaction  /** @return SUCCESS if the command
  */
 error_code_t performDeleteAllKeysTransaction /** @return SUCCESS if the command is successfully sent and a valid response is received, ERROR in case of error on sending or receiving the message or if the response is not valid. */
 ( 
- response_t* const response,   /**< [out]     The pointer to the structure holding the body of the NOTIF_RESPONSE message received.*/
- session_t* const curr_session /**< [int/out] The pointer the structure holding the information about the current application session.*/
-  )
+	response_t* const response,   /**< [out]     The pointer to the structure holding the body of the NOTIF_RESPONSE message received.*/
+	session_t* const curr_session /**< [int/out] The pointer the structure holding the information about the current application session.*/
+	)
 {
-  msg_type_t exp_msg_type = NOTIF_RESPONSE;
-  response_reason_t result;
-  response_t error_response;
+	msg_type_t exp_msg_type = NOTIF_RESPONSE;
+	response_reason_t result;
+	response_t error_response;
   
-  ASSERT(curr_session != NULL, E_NULL_POINTER);
-  ASSERT(response != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
   
-  memset(&error_response, 0U, sizeof(response_t));
+	memset(&error_response, 0U, sizeof(response_t));
   
-  if(sendCmdDeleteAllKeys(curr_session) != SUCCESS)
+	if(sendCmdDeleteAllKeys(curr_session) != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
+	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
     {
-      error_response.notifPayload.reason = result;
-	  sendNotifResponse(&error_response, curr_session);
-	  return(ERROR);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
     }
-  else
+	else
     {
-      curr_session->transNum++;
+		curr_session->transNum++;
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -2404,37 +2410,37 @@ error_code_t performReqDBChecksumTransaction /** @return SUCCESS if the command 
  */
 error_code_t performReqKeyOpTransaction /** @return SUCCESS if the command is successfully sent and a valid response is received, ERROR in case of error on sending or receiving the message or if the response is not valid. */
 (
- response_t* const response,     /**< [out]     The pointer to the structure holding the body of the NOTIF_KEY_OPERATION_REQ_RCVD message received.*/
- session_t* const curr_session,  /**< [int/out] The pointer the structure holding the information about the current application session.*/          
- const request_t* const request  /**< [in]      The pointer to the structure holding the body of the message to be sent.*/                      
- )
+	response_t* const response,     /**< [out]     The pointer to the structure holding the body of the NOTIF_KEY_OPERATION_REQ_RCVD message received.*/
+	session_t* const curr_session,  /**< [int/out] The pointer the structure holding the information about the current application session.*/          
+	const request_t* const request  /**< [in]      The pointer to the structure holding the body of the message to be sent.*/                      
+	)
 {
-  msg_type_t exp_msg_type = NOTIF_KEY_OPERATION_REQ_RCVD;
-  response_reason_t result;
-  response_t error_response;
+	msg_type_t exp_msg_type = NOTIF_KEY_OPERATION_REQ_RCVD;
+	response_reason_t result;
+	response_t error_response;
   
-  ASSERT(curr_session != NULL, E_NULL_POINTER);
-  ASSERT(response != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
   
-  memset(&error_response, 0U, sizeof(response_t));
+	memset(&error_response, 0U, sizeof(response_t));
   
-  if(sendCmdReqKeyOperation(request, curr_session) != SUCCESS)
+	if(sendCmdReqKeyOperation(request, curr_session) != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
+	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
     {
-      error_response.notifPayload.reason = result;
-      sendNotifResponse(&error_response, curr_session);
-      return(ERROR);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
     }
-  else
+	else
     {
-      curr_session->transNum++;
+		curr_session->transNum++;
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
 }
 
 /**
@@ -2449,36 +2455,55 @@ error_code_t performReqKeyOpTransaction /** @return SUCCESS if the command is su
  */
 error_code_t performNotifKeyUpStatusTransaction /** @return SUCCESS if the command is successfully sent and a valid response is received, ERROR in case of error on sending or receiving the message or if the response is not valid. */
 (
- response_t* const response,    /**< [out]     The pointer to the structure holding the body of the NOTIF_ACK_KEY_UPDATE_STATUS message received.*/
- session_t* const curr_session, /**< [int/out] The pointer the structure holding the information about the current application session.*/
- const request_t* const request /**< [in]      The pointer to the structure holding the body of the message to be sent.*/
- )
+	response_t* const response,    /**< [out]     The pointer to the structure holding the body of the NOTIF_ACK_KEY_UPDATE_STATUS message received.*/
+	session_t* const curr_session, /**< [int/out] The pointer the structure holding the information about the current application session.*/
+	const request_t* const request /**< [in]      The pointer to the structure holding the body of the message to be sent.*/
+	)
 {
-  msg_type_t exp_msg_type = NOTIF_ACK_KEY_UPDATE_STATUS;
-  response_reason_t result;
-  response_t error_response;
+	msg_type_t exp_msg_type = NOTIF_ACK_KEY_UPDATE_STATUS;
+	response_reason_t result;
+	response_t error_response;
   
-  ASSERT(curr_session != NULL, E_NULL_POINTER);
-  ASSERT(response != NULL, E_NULL_POINTER);
-  ASSERT(request != NULL, E_NULL_POINTER);
+	ASSERT(curr_session != NULL, E_NULL_POINTER);
+	ASSERT(response != NULL, E_NULL_POINTER);
+	ASSERT(request != NULL, E_NULL_POINTER);
   
-  memset(&error_response, 0U, sizeof(response_t));
+	memset(&error_response, 0U, sizeof(response_t));
   
-  if(sendNotifKeyUpdateStatus(request, curr_session) != SUCCESS)
+	if(sendNotifKeyUpdateStatus(request, curr_session) != SUCCESS)
     {
-      return(ERROR);
+		return(ERROR);
     }
   
-  if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
+	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
     {
-      error_response.notifPayload.reason = result;
-      sendNotifResponse(&error_response, curr_session);
-      return(ERROR);
+		error_response.notifPayload.reason = result;
+		sendNotifResponse(&error_response, curr_session);
+		return(ERROR);
     }
-  else
+	else
     {
-      curr_session->transNum++;
+		curr_session->transNum++;
     }
   
-  return(SUCCESS);
+	return(SUCCESS);
+}
+
+
+/**
+ * Evaluates the md4 checksum on a list of k-struct.
+ *
+ * TBD
+ */
+error_code_t evaluateChecksum /** @return SUCCESS if the checksum is correctly evaluated, ERROR in case of error. */
+(
+	notif_key_db_checksum_t* const checksum, /**< [out] The structure where the checksum will be stored.*/
+	const k_struct_t k_struct_list[],        /**< [in]  The array of k-struct on which evaluate the checksum.*/
+	const uint32_t k_struct_num              /**< [in]  The number ot k_struct_t.*/
+	)
+{
+	ASSERT(checksum != NULL, E_NULL_POINTER);
+	/* This function has not yet been implemented */
+
+	return(SUCCESS);
 }
