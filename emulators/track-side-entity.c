@@ -13,9 +13,9 @@
 #include "msg_definitions.h"
 #include "ss137_lib.h"
 
-#define RSA_CA_CERT    "./cert/cacert.pem"         /**< RSA root CA Certificate pathname */
-#define RSA_KEY        "./cert/track_key.pem"      /**< RSA Key pathname */
-#define RSA_CERT       "./cert/track_cert.pem"     /**< RSA Certificate pathname */
+#define RSA_CA_CERT    "../CA/ca.crt"   /**< RSA root CA Certificate pathname, pem format */
+#define RSA_CERT       "./dummy-certs/KmcEntity.crt" /**< RSA Certificate pathname, pem format */
+#define RSA_KEY        "./dummy-certs/KmcEntity.key"  /**< RSA Key pathname , no encryption, pem format*/
 
 ss137_lib_configuration_t ss137_lib_config =
 {
