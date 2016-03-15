@@ -21,21 +21,23 @@ TLSWRAPPERLIB=$(TLSWRAPPERSRC)/libtlswrapper.a
 GNUTLSINCLUDE=$(shell pkg-config --cflags gnutls)
 GNUTLSLIB=$(shell pkg-config --libs gnutls)
 
-#------------------------------------------------------------------------------
 
 INCLUDES=-I$(COMMONINCLUDE) -I$(SS137LIBINCLUDE) 
 
 CFLAGS= -g -Wall -D__DEBUG__ -pedantic -std=c99 $(INCLUDES)
 # LIBS=-lssl -lcrypto
 
-SRCS=kmc-core.c
+SRCS=track-side-entity.c
+
+BIN=track-side-entity
+
 OBJS=${SRCS:%.c=%.o}
 
-BIN=kmc-core
-
-.PHONY: clean 
+.PHONY: all clean 
 
 #------------------------------------------------------------------------------
+
+all: $(BIN)
 
 $(BIN): $(SRCS) $(SS137LIB) $(TLSWRAPPERLIB)
 	$(CC) $(CFLAGS) $< -o $@  $(SS137LIB) $(TLSWRAPPERLIB) $(GNUTLSLIB)
@@ -48,4 +50,4 @@ $(TLSWRAPPERLIB):
 	$(MAKE) -C $(TLSWRAPPERSRC) lib
 
 clean:
-	rm -rf $(OBJS) $(BIN) *~
+	rm -rf $(OBJS) $(BIN)
