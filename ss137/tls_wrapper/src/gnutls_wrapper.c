@@ -78,6 +78,8 @@ static gnutls_certificate_credentials_t x509_cred;
 
 static tls_error_code_t findTLSDes(uint32_t * const tls_id);
 
+static int verifyPeerCallback(gnutls_session_t session);
+
 static tls_error_code_t initTLS(const char* const ca_cert, const char *const key, const char* const cert);
 
 /*****************************************************************************
@@ -129,14 +131,16 @@ static tls_error_code_t initTLS(const char* const ca_cert,
 	log_print("RSA Key:  %s\n", key);
 	log_print("RSA Cert: %s\n", cert);
 	
-	/* for backwards compatibility with gnutls < 3.3.0 */
 	gnutls_global_init();
 
-	 /* X509 stuff */
+	 /* Allocate X509 struct */
 	gnutls_certificate_allocate_credentials(&x509_cred);
 
-	/* sets the trusted CA file*/
+	/* Set the trusted CA file*/
 	gnutls_certificate_set_x509_trust_file(x509_cred, ca_cert, GNUTLS_X509_FMT_PEM);
+
+	/* set the callback function used during certificate validation */
+	gnutls_certificate_set_verify_function (x509_cred, verifyPeerCallback);
 
 	/* Set local certificate and key*/
 	gnutls_certificate_set_x509_key_file (x509_cred, cert, key, GNUTLS_X509_FMT_PEM);
@@ -146,48 +150,49 @@ static tls_error_code_t initTLS(const char* const ca_cert,
 }
 
 
-static tls_error_code_t verifyPeer(gnutls_session_t session)
+static int verifyPeerCallback (gnutls_session_t session)
 {
 	unsigned int status;
 
 	if (gnutls_certificate_verify_peers2 (session, &status) < 0)
     {
 		err_print ("Error on peer certificate\n");
-		return(TLS_ERROR);
+		return(GNUTLS_E_CERTIFICATE_ERROR);
     }
 
 	if (status & GNUTLS_CERT_SIGNER_NOT_FOUND)
 	{
-		err_print ("The certificate hasn't got a known issuer.\n");
-		return(TLS_ERROR);
+		err_print ("The peer certificate hasn't got a known issuer.\n");
+		return(GNUTLS_E_CERTIFICATE_ERROR);
 	}
 	
 	if (status & GNUTLS_CERT_REVOKED)
 	{
-		err_print ("The certificate has been revoked.\n");
-		return(TLS_ERROR);
+		err_print ("The peer certificate has been revoked.\n");
+		return(GNUTLS_E_CERTIFICATE_ERROR);
 	}
 	
 	if (status & GNUTLS_CERT_EXPIRED)
 	{
-		err_print ("The certificate has expired\n");
-		return(TLS_ERROR);
+		err_print ("The peer certificate has expired\n");
+		return(GNUTLS_E_CERTIFICATE_ERROR);
 	}
 	
 	if (status & GNUTLS_CERT_NOT_ACTIVATED)
 	{
-		err_print ("The certificate is not yet activated\n");
-		return(TLS_ERROR);
+		err_print ("The peer certificate is not yet activated\n");
+		return(GNUTLS_E_CERTIFICATE_ERROR);
 	}
 	
 	if (status & GNUTLS_CERT_INVALID)
     {
-		err_print ("The certificate is not trusted.\n");
-		return GNUTLS_E_CERTIFICATE_ERROR;
+		err_print ("The peer certificate is not trusted.\n");
+		return(GNUTLS_E_CERTIFICATE_ERROR);
     }
 
-	log_print("The peer's certificate is valid\n");
-	return(TLS_SUCCESS);
+	log_print("The peer peer certificate  is valid\n");
+	
+	return(0);
 }
 
 /*****************************************************************************
@@ -237,7 +242,8 @@ tls_error_code_t initClientTLS(uint32_t* const tls_id,
 	{
 		return(TLS_ERROR);
 	}
-	
+
+	/* using this function the client will verify the server certificate sending also its own certificate */
 	gnutls_session_set_verify_cert(tls_descriptors[*tls_id].session, NULL, 0);
 	
 	tmp_sock = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -281,7 +287,7 @@ tls_error_code_t connectTLS(const uint32_t tls_id,
 
 	gnutls_handshake_set_timeout(tls_descriptors[tls_id].session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
 
-	/* Perform the TLS handshake     */
+	/* Perform the TLS handshake  */
 	do
 	{
 		ret = gnutls_handshake(tls_descriptors[tls_id].session);
@@ -289,7 +295,7 @@ tls_error_code_t connectTLS(const uint32_t tls_id,
 	while (ret < 0 && gnutls_error_is_fatal(ret) == 0);
 	if (ret < 0)
 	{
-		err_print("*** TLS Handshake failed\n");
+		err_print("Client TLS Handshake failed\n");
 		gnutls_perror(ret);
 		return(TLS_ERROR);
 	}
@@ -301,8 +307,6 @@ tls_error_code_t connectTLS(const uint32_t tls_id,
 		gnutls_free(desc);
 	}
 	
-	verifyPeer(tls_descriptors[tls_id].session);
-	
 	type = gnutls_certificate_type_get(tls_descriptors[tls_id].session);
 
 	status = gnutls_session_get_verify_cert_status(tls_descriptors[tls_id].session);
@@ -310,11 +314,14 @@ tls_error_code_t connectTLS(const uint32_t tls_id,
 	ret = gnutls_certificate_verification_status_print(status, type, &out, 0);
 	if (ret < 0)
 	{
-		err_print("Peer certificate verification failed\n");
+		err_print("Peer certificate verification failed.\n");
 		return(TLS_ERROR);
 	}
 
 	log_print("%s\n", out.data);
+
+	log_print("Client TLS Handshake completed successfully.\n");
+	
 	gnutls_free(out.data);
 	
 	return(TLS_SUCCESS);
@@ -334,14 +341,14 @@ tls_error_code_t initServerTLS(const uint16_t l_port,
 
 	if(initTLS(ca_cert, key, cert) != TLS_SUCCESS)
 	{
-		err_print("Error during initTLS()\n");
+		err_print("Error during initTLS().\n");
 		return(TLS_ERROR);
 	}
 	
 	listen_sock = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(listen_sock == -1)
 	{
-		err_print("Error opening listen socket\n");
+		err_print("Error opening listen socket.\n");
 		return(TLS_ERROR);
 	}
 
@@ -352,13 +359,13 @@ tls_error_code_t initServerTLS(const uint16_t l_port,
 
 	if(bind(listen_sock, (struct sockaddr*)&sa_serv, sizeof(sa_serv)) == -1)
 	{
-		err_print("Error on binding() port %d\n", l_port);
+		err_print("Error on binding port %d.\n", l_port);
 		return(TLS_ERROR);
 	}
 
 	if(listen(listen_sock, 5) == -1)
 	{
-		err_print("Error on listen() call\n");
+		err_print("Error on listen() call.\n");
 		return(TLS_ERROR);
 	}
 
@@ -390,7 +397,9 @@ tls_error_code_t acceptTLS(uint32_t* const tls_id,
 	
 	gnutls_credentials_set(tls_descriptors[*tls_id].session, GNUTLS_CRD_CERTIFICATE,  x509_cred);
 	
-	/* require the client certificate, the server will return an error if the peer does not provide a certificate */
+	/* require the client certificate, the server will send an certificate request message
+	   during TLS handshake. The handshake will return an error if the peer does not provide
+	   a certificate.*/
 	gnutls_certificate_server_set_request(tls_descriptors[*tls_id].session, GNUTLS_CERT_REQUIRE);
 	
 	client_len = sizeof(sa_cli);
@@ -399,7 +408,7 @@ tls_error_code_t acceptTLS(uint32_t* const tls_id,
 	client_sock = accept(listen_sock, (struct sockaddr*)&sa_cli, (socklen_t *)&client_len);
 	if(client_sock == -1)
 	{
-		err_print("Cannot accept connection\n");
+		err_print("Cannot accept connection.\n");
 		return(TLS_ERROR);
 	}
 	
@@ -419,13 +428,11 @@ tls_error_code_t acceptTLS(uint32_t* const tls_id,
 	
 	if (ret < 0)
 	{
-		err_print("TLS Handshake failed (%s)\n\n", gnutls_strerror(ret));
+		err_print("Server TLS Handshake failed (%s).\n", gnutls_strerror(ret));
 		return(TLS_ERROR);
 	}
 
-	verifyPeer(tls_descriptors[*tls_id].session);
-	
-	log_print("TLS Handshake completed\n");
+	log_print("Server TLS Handshake completed successfully.\n");
 	
 	return(TLS_SUCCESS);
 }
@@ -486,19 +493,19 @@ tls_error_code_t receiveTLS(uint32_t* const bytes_received,
 
 	if(n_active < 0)
 	{
-		err_print("poll() error\n");
+		err_print("poll() error.\n");
 		return(TLS_ERROR);
 	}
 	else if( n_active == 0)
 	{
-		warning_print("Timeout expired\n");
+		warning_print("Timeout expired.\n");
 		return(TLS_ERROR);
 	}
 	else
 	{
 		if ( ( handles[0].revents & POLLERR & POLLHUP & POLLNVAL ) != 0 )
 		{
-			err_print("poll() error\n");
+			err_print("poll() error.\n");
 			return(TLS_ERROR);
 		}
 		else if (handles[0].revents & POLLIN)
@@ -507,16 +514,16 @@ tls_error_code_t receiveTLS(uint32_t* const bytes_received,
 
 			if (*bytes_received == 0)
 			{
-				log_print("Peer has closed the TLS connection\n");
+				log_print("Peer has closed the TLS connection.\n");
 				return(TLS_ERROR);
 			}
 			else if (*bytes_received < 0 && gnutls_error_is_fatal(*bytes_received) == 0)
 			{
-				log_print("%s\n", gnutls_strerror(*bytes_received));
+				log_print("%s.\n", gnutls_strerror(*bytes_received));
 			}
 			else if (*bytes_received < 0)
 			{
-				err_print("%s\n", gnutls_strerror(*bytes_received));
+				err_print("%s.\n", gnutls_strerror(*bytes_received));
 				return(TLS_ERROR);
 			}
 		}
