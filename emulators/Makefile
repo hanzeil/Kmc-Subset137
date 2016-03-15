@@ -50,4 +50,4 @@ $(TLSWRAPPERLIB):
 	$(MAKE) -C $(TLSWRAPPERSRC) lib
 
 clean:
-	rm -rf $(OBJS) $(BIN)
+	rm -rf $(OBJS) $(BIN) *~

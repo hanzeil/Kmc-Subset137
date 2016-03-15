@@ -15,6 +15,7 @@ all:
 	done
 
 clean:
-	@for sub_dir in $(ALLTARGETS); do \
+	@rm -f *~ ; \
+	for sub_dir in $(ALLTARGETS); do \
 	  $(MAKE) -C $$sub_dir/src  clean ; \
 	done
