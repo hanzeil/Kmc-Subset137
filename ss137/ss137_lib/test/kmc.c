@@ -82,7 +82,6 @@ int main(int argc, char *argv[])
 	session_t session;
 	request_t request;
 	response_t response;
-	uint32_t i = 0U;
 
 	memset(&session, 0, sizeof(session_t));
 
@@ -103,67 +102,64 @@ int main(int argc, char *argv[])
 			request.reqNum = 1;
 			log_print("----------------------------------------------------------\n");
 			log_print("----------------------------------------------------------\n");
-			/* first transaction */
-			for(i = 0U; i < atoi(argv[1]); i++)
+
+			memmove(request.kStructList, &k_struct, sizeof(k_struct_t));
+			if(performAddKeysTransaction(&response, &session, &request) != SUCCESS)
 			{
-				memmove(request.kStructList, &k_struct, sizeof(k_struct_t));
-				if(performAddKeysTransaction(&response, &session, &request) != SUCCESS)
-				{
-					break;
-				}
-
-				log_print("----------------------------------------------------------\n");
-				log_print("----------------------------------------------------------\n");
-			
-				memmove(request.kIdentList, &k_ident, sizeof(k_ident_t));
-				if(performDelKeysTransaction(&response, &session, &request)!= SUCCESS)
-				{
-					break;
-				}
-
-				log_print("----------------------------------------------------------\n");
-				log_print("----------------------------------------------------------\n");
-			
-				memmove(request.kValidityList, &k_validity, sizeof(k_validity_t));
-				if(performUpKeyValiditiesTransaction(&response, &session, &request)!= SUCCESS)
-				{
-					break;
-				}
-
-				log_print("----------------------------------------------------------\n");
-				log_print("----------------------------------------------------------\n");
-			
-				memmove(request.kEntityList, &k_entity, sizeof(k_entity_t));
-				if(performUpKeyEntitiesTransaction(&response, &session, &request)!= SUCCESS)
-				{
-					break;
-				}
-
-				log_print("----------------------------------------------------------\n");
-				log_print("----------------------------------------------------------\n");
-			
-				if(performDeleteAllKeysTransaction(&response, &session)!= SUCCESS)
-				{
-					break;
-				}
-
-				log_print("----------------------------------------------------------\n");
-				log_print("----------------------------------------------------------\n");
-			
-				if(performReqDBChecksumTransaction(&response, &session)!= SUCCESS)
-				{
-					break;
-				}
-
-				log_print("----------------------------------------------------------\n");
-				log_print("----------------------------------------------------------\n");
-			
+				exit(1);
 			}
-		
-			endAppSession(&session);
-		
-			closeTLSConnection(session.tlsID);
+			
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			
+			memmove(request.kIdentList, &k_ident, sizeof(k_ident_t));
+			if(performDelKeysTransaction(&response, &session, &request)!= SUCCESS)
+			{
+				exit(1);
+			}
+			
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			
+			memmove(request.kValidityList, &k_validity, sizeof(k_validity_t));
+			if(performUpKeyValiditiesTransaction(&response, &session, &request)!= SUCCESS)
+			{
+				exit(1);
+			}
+			
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			
+			memmove(request.kEntityList, &k_entity, sizeof(k_entity_t));
+			if(performUpKeyEntitiesTransaction(&response, &session, &request)!= SUCCESS)
+			{
+				exit(1);
+			}
+			
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			
+			if(performDeleteAllKeysTransaction(&response, &session)!= SUCCESS)
+			{
+				exit(1);
+			}
+			
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			
+			if(performReqDBChecksumTransaction(&response, &session)!= SUCCESS)
+			{
+				exit(1);
+			}
+
+			log_print("----------------------------------------------------------\n");
+			log_print("----------------------------------------------------------\n");
+			
 		}
+		
+		endAppSession(&session);
+		
+		closeTLSConnection(session.tlsID);
 	}
 	
 	return(0);

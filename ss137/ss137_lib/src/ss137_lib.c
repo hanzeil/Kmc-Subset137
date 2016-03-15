@@ -667,7 +667,7 @@ static error_code_t checkMsgHeader /** @return SUCCESS in any case. */
 		warning_print("Invalid msg length:  received 0x%08x exp 0x%08x\n",
 					  header->msgLength, exp_msg_length);
     }
-	else if( header->msgType > NOTIF_KEY_DB_CHECKSUM )
+	else if( header->msgType >= END_MSG_TYPE )
     {
 		/* msg type not supported */
 		*result = RESP_NOT_SUPPORTED;
@@ -742,20 +742,9 @@ static error_code_t sendMsg           /** @return SUCCESS if the message is corr
 		return(ERROR);
 	}
 
-#ifdef __DEBUG__
-	char dump_msg[2000];
-	char tmp_str[5];
-	uint32_t i = 0U;
-	memset(dump_msg, 0, 2000);
-	memset(tmp_str, 0, 5);
-	sprintf(dump_msg, "Msg sent(%d bytes): ", ostream->curSize);
-	for(i = 0U; i < ostream->curSize; i++)
-	{
-		sprintf(tmp_str, "0x%02X ", ostream->buffer[i]);
-		strcat(dump_msg, tmp_str);
-	}
-	log_print("%s\n", dump_msg);
-#endif
+	log_print("Sent a msg of length %d\n", ostream->curSize);
+	
+	dump_msg("sent", ostream->buffer, ostream->curSize);
 	
 	mySeqNum++;
 	
@@ -771,7 +760,9 @@ static error_code_t sendMsg           /** @return SUCCESS if the message is corr
  *the result is than stored in the are pointed by the reamaining time parameter.
  * The function calls the exit() function on any erorr on the addressing of the input parameters.
  */
-static error_code_t evaluateRemainingTime /** @return SUCCESS if the difference is correctly evaluated, ERROR if start_time is larger than the current timeor if the remaining time is larger than 255 (see ref. SUBSET-137 5.3.13) */
+static error_code_t evaluateRemainingTime /** @return SUCCESS if the difference is correctly evaluated,
+											  ERROR if start_time is larger than the current timeor if
+											  the remaining time is larger than 255 (see ref. SUBSET-137 5.3.13) */
 (
 	uint8_t *const remaining_time,        /**< [out] The pointer to the area storing the remaining time to wait.*/   
 	const struct timeval start_time,      /**< [in]  The time of the last message received by the peer.*/   
@@ -817,7 +808,9 @@ static error_code_t evaluateRemainingTime /** @return SUCCESS if the difference 
  * the number of bytes read.
  * The function calls the exit() function on any erorr on the addressing of the input parameters.
  */
-static error_code_t receiveMsg  /** @return SUCCESS if the read operation succeds, ERROR if the receiveTLS() call fails or if the timeout expires without receiving new data. */
+static error_code_t receiveMsg  /** @return SUCCESS if the read operation succeds,
+									ERROR if the receiveTLS() call fails or if the timeout
+									expires without receiving new data. */
 (
 	read_stream_t* const istream,  /**< [out] Struct where the message read is stored.*/   
 	const uint8_t timeout,         /**< [in]  The application timeout*/   
@@ -833,20 +826,10 @@ static error_code_t receiveMsg  /** @return SUCCESS if the read operation succed
 		return(ERROR);
 	}
 
-#ifdef __DEBUG__
-	char dump_msg[2000];
-	char tmp_str[5];
-	uint32_t i = 0U;
-	memset(dump_msg, 0, 2000);
-	memset(tmp_str, 0, 5);
-	sprintf(dump_msg, "Msg recv(%d bytes): ", istream->validBytes);
-	for(i = 0U; i < istream->validBytes; i++)
-	{
-		sprintf(tmp_str, "0x%02X ", istream->buffer[i]);
-		strcat(dump_msg, tmp_str);
-	}
-	log_print("%s\n", dump_msg);
-#endif
+	log_print("Received a msg of length %d\n", istream->validBytes);
+	
+	dump_msg("received", istream->buffer, istream->validBytes);
+	
 	return(SUCCESS);
 }
 
@@ -942,7 +925,10 @@ static error_code_t sendNotifSessionEnd /** @return SUCCESS if the message is co
  * In case of error the variable result it set to one of the value described in ref. SUBSET-137 5.3.15.
  * The function calls the exit() function on any erorr on the addressing of the input parameters.
  */
-static error_code_t waitForSessionInit   /** @return SUCCESS if the message is correctly received and is a valid NOTIF_SESSION_INIT message, ERROR in case of errors in the reception of the message(i.e. connection timeout) or if the message has not a valid header.*/
+static error_code_t waitForSessionInit   /** @return SUCCESS if the message is correctly
+											 received and is a valid NOTIF_SESSION_INIT message,
+											 ERROR in case of errors in the reception of the
+											 message(i.e. connection timeout) or if the message has not a valid header.*/
 (
 	notif_session_init_t* const payload, /**< [out]    The structure holding the body of the NOTIF_SESSION_INIT message*/   
 	response_reason_t* const result,     /**< [out]    The result of the validation of the message.*/   
@@ -968,6 +954,11 @@ static error_code_t waitForSessionInit   /** @return SUCCESS if the message is c
   
 	if( receiveMsg(&input_msg, remaining_time, curr_session->tlsID) != SUCCESS )
     {
+		/* connection closed due to a timeout or a shutdown */
+		if(input_msg.validBytes == 0U)
+		{
+			*result = RESP_TIMEOUT;
+		}
 		return (ERROR);
     }
   
@@ -1076,6 +1067,8 @@ static error_code_t sendCmdAddKeys    /** @return SUCCESS if the message is corr
 	{
 		return(ERROR);
 	}
+
+	log_print("Sent a CMD_ADD_KEYS message\n");
 	
 	return(SUCCESS);
 }
@@ -1125,7 +1118,9 @@ static error_code_t sendCmdDeleteKeys /** @return SUCCESS if the message is corr
     {
 		return(ERROR);
     }
-  
+
+	log_print("Sent a CMD_DEL_KEYS message\n");
+	
 	return(SUCCESS);
 }
 
@@ -1176,6 +1171,8 @@ static error_code_t sendCmdUpKeyValidities /** @return SUCCESS if the message is
 		return(ERROR);
 	}
 
+	log_print("Sent a CMD_UPDATE_KEY_VALIDITIES message\n");
+		
 	return(SUCCESS);
 }
 
@@ -1237,7 +1234,9 @@ static error_code_t sendCmdUpKeyEntities /** @return SUCCESS if the message is c
 	{
 		return(ERROR);
 	}
-	
+
+	log_print("Sent a CMD_UPDATE_KEY_ENTITIES message\n");
+
 	return(SUCCESS);
 }
 
@@ -1273,7 +1272,9 @@ static error_code_t sendCmdDeleteAllKeys /** @return SUCCESS if the message is c
 	{
 		return(ERROR);
 	}
-		
+
+	log_print("Sent a CMD_DELETE_ALL_KEYS message\n");
+	
 	return(SUCCESS);
 }
 
@@ -1308,6 +1309,8 @@ static error_code_t sendCmdReqKeyDBChecksum /** @return SUCCESS if the message i
 		return(ERROR);
 	}
 
+	log_print("Sent a CMD_REQUEST_KEY_DB_CHECKSUM message\n");
+	
 	return(SUCCESS);
 }
 
@@ -1359,6 +1362,8 @@ static error_code_t sendCmdReqKeyOperation /** @return SUCCESS if the message is
 	{
 		return(ERROR);
 	}
+
+	log_print("Sent a CMD_REQUEST_KEY_OPERATION message\n");
 	
 	return(SUCCESS);
 }
@@ -1402,6 +1407,8 @@ static error_code_t sendNotifKeyUpdateStatus /** @return SUCCESS if the message 
 		return(ERROR);
 	}
 
+	log_print("Sent a NOTIF_KEY_UPDATE_STATUS message\n");
+	
 	return(SUCCESS);
 }
 
@@ -1447,6 +1454,8 @@ error_code_t sendNotifKeyDBChecksum /** @return SUCCESS if the message is correc
 	{
 		return(ERROR);
 	}
+
+	log_print("Sent a NOTIF_KEY_DB_CHECKSUM message\n");
 	
 	return(SUCCESS);
 }
@@ -1494,6 +1503,8 @@ error_code_t sendNotifResponse /** @return SUCCESS if the message is correctly p
 	{
 		return(ERROR);
 	}
+
+	log_print("Sent a NOTIF_RESPONSE message\n");
 	
 	return(SUCCESS);
 }
@@ -1534,6 +1545,8 @@ error_code_t sendNotifKeyOpReqRcvd /** @return SUCCESS if the message is correct
 	{
 		return(ERROR);
 	}
+
+	log_print("Sent a NOTIF_KEY_OPERATION_REQ_RCVD message\n");
 	
 	return(SUCCESS);
 }
@@ -1569,6 +1582,8 @@ error_code_t sendNotifAckKeyUpStatus /** @return SUCCESS if the message is corre
 	{
 		return(ERROR);
 	}
+
+	log_print("Sent a NOTIF_ACK_KEY_UPDATE_STATUS message\n");
 	
 	return(SUCCESS);
 }
@@ -1594,7 +1609,7 @@ error_code_t startClientTLS /** @return SUCCESS in case of initilization success
     {
 		return(ERROR);
     }
-  
+	
 	return(SUCCESS);
 }
 
@@ -1664,7 +1679,9 @@ error_code_t listenForTLSClient /** @return SUCCESS in case of initilization suc
 	
 	ASSERT(tls_id != NULL, E_NULL_POINTER);
 	ASSERT(exp_etcs_id != NULL, E_NULL_POINTER);
-  
+
+	log_print("Wait for client\n");
+	
 	if(acceptTLS(tls_id, client_ip) != TLS_SUCCESS)
     {
 		return(ERROR);
@@ -1716,7 +1733,8 @@ void closeTLSConnection /** @return void */
  * to the KMC with the corresponding error reason.
  * The function calls the exit() function on any erorr on the addressing of the input parameters.
  */
-error_code_t waitForRequestFromKMCToKMAC /** @return SUCCESS if te request is considered valid, ERROR if the timeout expires without receiving new request or if the message is not valid */
+error_code_t waitForRequestFromKMCToKMAC /** @return SUCCESS if te request is considered valid,
+											 ERROR if the timeout expires without receiving new request or if the message is not valid */
 (
 	request_t* const request,      /**< [out]    The pointer to the structure holding the request from the KMC*/     			     
 	session_t* const curr_session  /**< [in/out] The pointer the structure holding the information about the current application session.*/     
@@ -1734,9 +1752,16 @@ error_code_t waitForRequestFromKMCToKMAC /** @return SUCCESS if te request is co
 	memset(&error_response, 0U, sizeof(response_t));
   
 	initReadStream(&input_msg);
-  
+
+	log_print("Wait for incoming request\n");
+	
 	if(receiveMsg(&input_msg, curr_session->appTimeout, curr_session->tlsID) != SUCCESS)
     {
+		/* connection closed due to a timeout or a shutdown */
+		if(input_msg.validBytes == 0U)
+		{
+			result = RESP_TIMEOUT;
+		}
 		return(ERROR);
     }
   
@@ -1819,7 +1844,8 @@ error_code_t waitForRequestFromKMCToKMAC /** @return SUCCESS if te request is co
  * to the KMC with the corresponding error reason.
  * The function calls the exit() function on any erorr on the addressing of the input parameters.
  */
-error_code_t waitForRequestFromKMCToKMC  /** @return SUCCESS if the request is considered valid, ERROR if the timeout expires without receiving new request or if the message is not valid */
+error_code_t waitForRequestFromKMCToKMC  /** @return SUCCESS if the request is considered valid,
+											 ERROR if the timeout expires without receiving new request or if the message is not valid */
 (
 	request_t* const request,     /**< [out]    The pointer to the structure holding the request from the KMC*/
 	session_t* const curr_session /**< [in/out] The pointer the structure holding the information about the current application session.*/
@@ -1837,9 +1863,16 @@ error_code_t waitForRequestFromKMCToKMC  /** @return SUCCESS if the request is c
 	memset(&error_response, 0U, sizeof(response_t));
 	
 	initReadStream(&input_msg);
-	
+
+	log_print("Wait for incoming request\n");
+
 	if(receiveMsg(&input_msg, curr_session->appTimeout, curr_session->tlsID) != SUCCESS)
 	{
+		/* connection closed due to a timeout or a shutdown */
+		if(input_msg.validBytes == 0U)
+		{
+			result = RESP_TIMEOUT;
+		}
 		return(ERROR);
 	}
 
@@ -1921,7 +1954,8 @@ error_code_t waitForRequestFromKMCToKMC  /** @return SUCCESS if the request is c
  * is set to the corresponding error reason.
  * The function calls the exit() function on any erorr on the addressing of the input parameters.
  */
-static error_code_t waitForResponse    /** @return SUCCESS if the response is considered valid, ERROR if the timeout expires without receiving the reponse or if the response message is not valid */
+static error_code_t waitForResponse    /** @return SUCCESS if the response is considered valid,
+										   ERROR if the timeout expires without receiving the reponse or if the response message is not valid */
 (
 	response_t* const response,      /**< [out]    The pointer to the structure holding the body of the response message received.*/       
 	response_reason_t* const result, /**< [out]    The result of the validation of the response message received.*/       
@@ -1941,8 +1975,14 @@ static error_code_t waitForResponse    /** @return SUCCESS if the response is co
   
 	if(receiveMsg(&input_msg, curr_session->appTimeout, curr_session->tlsID) != SUCCESS)
     {
+		/* connection closed due to a timeout or a shutdown */
+		if(input_msg.validBytes == 0U)
+		{
+			*result = RESP_TIMEOUT;
+		}
 		return(ERROR);
     }
+
   
 	/* reset the start time */
 	gettimeofday(&(curr_session->startTime), NULL);
@@ -1972,6 +2012,7 @@ static error_code_t waitForResponse    /** @return SUCCESS if the response is co
 		}
 		else
 		{
+			log_print("Received response of type: %d\n", header.msgType);
 			switch(header.msgType)
 			{
 			case(NOTIF_RESPONSE):
@@ -2128,8 +2169,11 @@ error_code_t performAddKeysTransaction /** @return SUCCESS if the command is suc
   
 	if(waitForResponse(response,  &result, curr_session, exp_msg_type) != SUCCESS)
     {
-		error_response.notifPayload.reason = result;
-		sendNotifResponse(&error_response, curr_session);
+		if(result != RESP_TIMEOUT)
+		{
+			error_response.notifPayload.reason = result;
+			sendNotifResponse(&error_response, curr_session);
+		}
 		return(ERROR);
     }
   
@@ -2182,8 +2226,11 @@ error_code_t performDelKeysTransaction /** @return SUCCESS if the command is suc
   
 	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
     {
-		error_response.notifPayload.reason = result;
-		sendNotifResponse(&error_response, curr_session);
+		if(result != RESP_TIMEOUT)
+		{
+			error_response.notifPayload.reason = result;
+			sendNotifResponse(&error_response, curr_session);
+		}
 		return(ERROR);
     }
   
@@ -2236,8 +2283,11 @@ error_code_t performUpKeyValiditiesTransaction /** @return SUCCESS if the comman
 
 	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
 	{
-		error_response.notifPayload.reason = result;
-		sendNotifResponse(&error_response, curr_session);
+		if(result != RESP_TIMEOUT)
+		{
+			error_response.notifPayload.reason = result;
+			sendNotifResponse(&error_response, curr_session);
+		}
 		return(ERROR);
 	}
 
@@ -2290,8 +2340,11 @@ error_code_t performUpKeyEntitiesTransaction  /** @return SUCCESS if the command
 
 	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
 	{
-		error_response.notifPayload.reason = result;
-		sendNotifResponse(&error_response, curr_session);
+		if(result != RESP_TIMEOUT)
+		{
+			error_response.notifPayload.reason = result;
+			sendNotifResponse(&error_response, curr_session);
+		}
 		return(ERROR);
 	}
 
@@ -2342,8 +2395,11 @@ error_code_t performDeleteAllKeysTransaction /** @return SUCCESS if the command 
   
 	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
     {
-		error_response.notifPayload.reason = result;
-		sendNotifResponse(&error_response, curr_session);
+		if(result != RESP_TIMEOUT)
+		{
+			error_response.notifPayload.reason = result;
+			sendNotifResponse(&error_response, curr_session);
+		}
 		return(ERROR);
     }
 	else
@@ -2386,8 +2442,11 @@ error_code_t performReqDBChecksumTransaction /** @return SUCCESS if the command 
 
 	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
 	{
-		error_response.notifPayload.reason = result;
-		sendNotifResponse(&error_response, curr_session);
+		if(result != RESP_TIMEOUT)
+		{
+			error_response.notifPayload.reason = result;
+			sendNotifResponse(&error_response, curr_session);
+		}
 		return(ERROR);
 	}
 	else
@@ -2431,8 +2490,11 @@ error_code_t performReqKeyOpTransaction /** @return SUCCESS if the command is su
   
 	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
     {
-		error_response.notifPayload.reason = result;
-		sendNotifResponse(&error_response, curr_session);
+		if(result != RESP_TIMEOUT)
+		{
+			error_response.notifPayload.reason = result;
+			sendNotifResponse(&error_response, curr_session);
+		}
 		return(ERROR);
     }
 	else
@@ -2477,8 +2539,11 @@ error_code_t performNotifKeyUpStatusTransaction /** @return SUCCESS if the comma
   
 	if(waitForResponse(response, &result, curr_session, exp_msg_type) != SUCCESS)
     {
-		error_response.notifPayload.reason = result;
-		sendNotifResponse(&error_response, curr_session);
+		if(result != RESP_TIMEOUT)
+		{
+			error_response.notifPayload.reason = result;
+			sendNotifResponse(&error_response, curr_session);
+		}
 		return(ERROR);
     }
 	else

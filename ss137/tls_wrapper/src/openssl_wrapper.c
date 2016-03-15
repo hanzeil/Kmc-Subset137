@@ -710,6 +710,7 @@ tls_error_code_t receiveTLS         /** @return TLS_SUCCESS if the message is co
 	}
 	else if( n_active == 0)
 	{
+		*bytes_received = 0U;
 		warning_print("Timeout expired\n");
 		return(TLS_ERROR);
 	}

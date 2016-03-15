@@ -26,15 +26,44 @@
 
 /** Helper function for log print*/
 #define log_print(...)													\
-	do { fprintf(stdout, "LOG [%s: %d]\t", basename(__FILE__), __LINE__); fprintf(stdout, ##__VA_ARGS__); fflush(NULL); } while (0)
+	do {																\
+		fprintf(stdout, "LOG [%s: %d]\t", basename(__FILE__), __LINE__); \
+		fprintf(stdout, ##__VA_ARGS__);									\
+		fflush(NULL);													\
+	} while (0)
 
 /** Helper function for err print*/
 #define err_print(...)													\
-	do { fprintf(stderr, "ERR   [%s: %d]\t", basename(__FILE__), __LINE__); fprintf(stderr, ##__VA_ARGS__); fflush(NULL); } while (0)
+	do {																\
+		fprintf(stderr, "ERR   [%s: %d]\t", basename(__FILE__), __LINE__); \
+		fprintf(stderr, ##__VA_ARGS__);									\
+		fflush(NULL);													\
+	} while (0)
 
 /** Helper function for warning print*/
 #define warning_print(...)												\
-	do { fprintf(stderr, "WARN  [%s: %d]\t", basename(__FILE__), __LINE__); fprintf(stderr, ##__VA_ARGS__); fflush(NULL); } while (0)
+	do {																\
+		fprintf(stderr, "WARN  [%s: %d]\t", basename(__FILE__), __LINE__); \
+		fprintf(stderr, ##__VA_ARGS__);									\
+		fflush(NULL);													\
+	} while (0)
+
+/** Helper function for dump a messages*/
+#ifdef __DEBUG__
+#define dump_msg(type, buffer, size)									\
+	do {																\
+	uint32_t i = 0U;													\
+	fprintf(stderr, "MSG %s (%d bytes)\t", (type), (size));				\
+	for(i = 0U; i < (size); i++)										\
+	{																	\
+		fprintf(stderr, "0x%02X ", (buffer)[i]);						\
+	}																	\
+	fprintf(stderr, "\n");												\
+	fflush(NULL);														\
+	} while (0)
+#else
+#define dump_msg(type, buffer, size)
+#endif
 
 /** Assert macro for defensive programming */
 #define ASSERT(_condition, code)							\

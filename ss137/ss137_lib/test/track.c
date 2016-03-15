@@ -30,14 +30,11 @@ ss137_lib_configuration_t ss137_lib_config =
 
 int main(int argc, char *argv[])
 {
-	session_t session;
 	request_t request;
 	bool_t stop = FALSE;
 	response_t response;
 	uint32_t i = 0U;
 	uint32_t exp_etcs_id = 0U;
-
-	memset(&session, 0, sizeof(session_t));
 
 	if(startServerTLS() != SUCCESS)
 	{
@@ -46,6 +43,9 @@ int main(int argc, char *argv[])
 
 	while(1)
 	{
+		session_t session;
+		memset(&session, 0, sizeof(session_t));
+
 		if(listenForTLSClient(&session.tlsID, &exp_etcs_id) != SUCCESS)
 		{
 			exit(1);
@@ -115,8 +115,9 @@ int main(int argc, char *argv[])
 			request.reqNum = 0;
 			log_print("----------------------------------------------------------\n");
 			log_print("----------------------------------------------------------\n");
-			sleep(2U);
+			sleep(5U);
 		}
+		
 		stop = FALSE;
 		closeTLSConnection(session.tlsID);
 	}

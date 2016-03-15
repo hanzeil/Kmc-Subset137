@@ -196,7 +196,8 @@ typedef enum
 	NEW_TRAIN    = 0,
 	MOD_AREA     = 1,
 	RED_SCHED    = 2,
-	APPR_END_VAL = 3
+	APPR_END_VAL = 3,
+	END_KEY_OP   = 4
 } req_key_op_t;
 
 /** NOTIF_KEY_UPDATE_STATUS message struct typedef (see ref. SUBSET-137 5.3.11) */
@@ -209,9 +210,10 @@ typedef struct
 /** Key status (see ref. SUBSET-137 5.3.11) */
 typedef enum
 {
-	KEY_INST  = 1,
-	KEY_UP    = 2,
-	KEY_DEL   = 3
+	KEY_INST     = 1,
+	KEY_UP       = 2,
+	KEY_DEL      = 3,
+	END_KEY_STAT = 4
 } k_status_t;
 
 /** Struct holding all kind of command/request message payload */
@@ -257,18 +259,21 @@ typedef enum
 	RESP_WRONG_CHKSUM     = 8,
 	RESP_WRONG_SEQ_NUM    = 9,
 	RESP_WRONG_TRANS_NUM  = 10,
-	RESP_WRONG_FORMAT     = 11
+	RESP_WRONG_FORMAT     = 11,
+	RESP_TIMEOUT          = 12,
+	END_RESP_REASON       = 13
 } response_reason_t;
 
 /** Notification status of NOTIF_RESPONSE (see ref. SUBSET-137 5.3.13) */
 typedef enum
 {
-	REQ_SUCCESS   = 0,
-	UNKNOWN_KEY   = 1,
-	MAX_KEY       = 2,
-	KEY_EXIST     = 3,
-	KEY_CORRUPTED = 4,
-	WRONG_ID      = 5
+	REQ_SUCCESS      = 0,
+	UNKNOWN_KEY      = 1,
+	MAX_KEY          = 2,
+	KEY_EXIST        = 3,
+	KEY_CORRUPTED    = 4,
+	WRONG_ID         = 5,
+	END_NOTIF_REASON = 6
 } notif_reason_t;
 
 /** NOTIF_KEY_OPERAION_REQ_RCVD message struct typedef (see ref. SUBSET-137 5.3.16) */

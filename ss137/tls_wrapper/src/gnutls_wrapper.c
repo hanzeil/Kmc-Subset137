@@ -81,6 +81,9 @@ static int32_t listen_sock = -1;
 /** Structure holding the certificates and keys */
 static gnutls_certificate_credentials_t x509_cred;
 
+/** Bool used to identify id the shutdown message has been received by the peer */
+static bool_t shutdown_received = 0U;
+
 /*****************************************************************************
  * FUNCTION PROTOTYPES
  *****************************************************************************/
@@ -219,7 +222,7 @@ static int verifyPeerCallback /** @return 0 if the peer certificate is valid, GN
 		return(GNUTLS_E_CERTIFICATE_ERROR);
     }
 
-	log_print("The peer peer certificate  is valid\n");
+	log_print("The peer certificate  is valid\n");
 	
 	return(0);
 }
@@ -518,15 +521,26 @@ tls_error_code_t closeTLS  /** @return error code */
 {
 	ASSERT(tls_id < MAX_TLS_DES, E_INVALID_PARAM);
 
-	gnutls_bye(tls_descriptors[tls_id].session, GNUTLS_SHUT_RDWR);
+	log_print("Closing session...\n");
+
+	if(shutdown_received == FALSE)
+	{
+		gnutls_bye(tls_descriptors[tls_id].session, GNUTLS_SHUT_WR);
+	}
+	else
+	{
+		shutdown_received = FALSE;
+	}
 
 	gnutls_deinit(tls_descriptors[tls_id].session);
-
+	
 	close(tls_descriptors[tls_id].socket);
 
 	tls_descriptors[tls_id].socket = -1;
 	tls_descriptors[tls_id].in_use = FALSE;
 
+	log_print("closed\n");
+	
 	return(TLS_SUCCESS);
 }
 
@@ -582,11 +596,14 @@ tls_error_code_t receiveTLS          /** @return TLS_SUCCESS if the message is c
 	struct pollfd handles[1];
     const nfds_t n_handles = 1;
 	int32_t n_active = -1;
+	int32_t tmp_bytes_received = -1;
 
 	ASSERT(tls_id < MAX_TLS_DES, E_INVALID_PARAM);
 	ASSERT(bytes_received != NULL, E_NULL_POINTER);
 	ASSERT(buf != NULL, E_NULL_POINTER);
 
+	*bytes_received = 0U;
+	
     handles[0].fd = tls_descriptors[tls_id].socket;
     handles[0].events = POLLIN;
 
@@ -611,26 +628,31 @@ tls_error_code_t receiveTLS          /** @return TLS_SUCCESS if the message is c
 		}
 		else if (handles[0].revents & POLLIN)
 		{
-			*bytes_received = gnutls_record_recv(tls_descriptors[tls_id].session, buf, buf_len);
+			tmp_bytes_received = gnutls_record_recv(tls_descriptors[tls_id].session, buf, buf_len);
 
-			if (*bytes_received == 0)
+			if (tmp_bytes_received == 0)
 			{
 				log_print("Peer has closed the TLS connection.\n");
+				shutdown_received = TRUE;
 				return(TLS_ERROR);
 			}
-			else if (*bytes_received < 0 && gnutls_error_is_fatal(*bytes_received) == 0)
+			else if (tmp_bytes_received < 0 && gnutls_error_is_fatal(*bytes_received) == 0)
 			{
 				log_print("%s.\n", gnutls_strerror(*bytes_received));
+				shutdown_received = TRUE;
+				return(TLS_ERROR);
 			}
-			else if (*bytes_received < 0)
+			else if (tmp_bytes_received < 0)
 			{
 				err_print("%s.\n", gnutls_strerror(*bytes_received));
 				return(TLS_ERROR);
 			}
 		}
 	}
+
+	*bytes_received = (uint32_t) tmp_bytes_received;
 	
-	return(TLS_SUCCESS);
+	return(TLS_SUCCESS); 
 }
 
 /**
