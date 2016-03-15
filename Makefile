@@ -1,3 +1,22 @@
+###############################################################################
+#
+# KMC Root Makefile.
+#
+# KMC Root Makefile.
+#
+# @file: ./Makefile
+# $Author: $
+# $Revision: $
+# $Date: $
+#
+# History:
+#
+# Version     Date      Author         Change Description
+#
+# - $Id: $  
+#
+###############################################################################
+
 
 LIBS		= ss137
 KMCCORE		= kmc-core

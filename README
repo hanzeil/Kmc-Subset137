@@ -1,15 +1,39 @@
+###############################################################################
+#
+# KMC-SS137 README
+#
+# KMC-SS137 README
+#
+# @file: ./README
+# $Author: $
+# $Revision: $
+# $Date: $
+#
+# History:
+#
+# Version     Date      Author         Change Description
+#
+# - $Id: $  
+#
+###############################################################################
+
 == DEPENDANCIES ==
  * library gnutls > v3.4.9 (needs support for TLS_ECDHE_RSA_WITH_AES_254_GCM_SHA384)
  * library nettle > v3.1
+ * Doxygen +graphviz if you want documentation
 
-== TEST ENVIRONMENT ==
+== TESTED ON ==
  * Ubuntu 14.04.04 (needs gnutls recompilation)
  * Fedora 23
  * Centos 7
 
-
+== KNOWN ISSUES ==
+ * Missing KMC-PSK functinality
+ 
 == TODO ==
  * add Copyleft
+ * add support for DB-based KSTRUCTs (sqlite?)
+ * a lot more testing
  * add configure shell with options:
  ** ./configure --help
  *** --with-gnutls | --with-openssl

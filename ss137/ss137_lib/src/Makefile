@@ -1,3 +1,21 @@
+###############################################################################
+#
+# KMC SS137LIB Root Makefile.
+#
+# KMC SS137LIB Root Makefile.
+#
+# @file: ./Makefile
+# $Author: $
+# $Revision: $
+# $Date: $
+#
+# History:
+#
+# Version     Date      Author         Change Description
+#
+# - $Id: $  
+#
+###############################################################################
 
 TLSWRAPPERDIR=../../tls_wrapper
 TLSWRAPPERINCLUDE=$(TLSWRAPPERDIR)/include
