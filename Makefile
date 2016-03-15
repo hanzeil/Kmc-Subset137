@@ -5,13 +5,18 @@ EMULATORS	= emulators
 
 ALLTARGETS	= $(LIBS) $(KMCCORE) $(EMULATORS) 
 
-.PHONY: clean 
+.PHONY: all docs clean 
 
 #------------------------------------------------------------------------------
 
 all:
 	@for sub_dir in $(ALLTARGETS); \
 	  do $(MAKE)  -C $$sub_dir || exit $$? ; \
+	done
+
+docs:
+	@for sub_dir in $(LIBS); \
+	  do $(MAKE)  -C $$sub_dir docs || exit $$? ; \
 	done
 
 clean:
