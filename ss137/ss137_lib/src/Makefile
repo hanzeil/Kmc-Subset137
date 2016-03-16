@@ -31,7 +31,7 @@ CFLAGS= -g -Wall -D__DEBUG__ -pedantic -std=c99 $(INCLUDES)
 LIBNAME=libss137.a
 
 SRCS=ss137_lib.c net_utils.c
-OBJS=ss137_lib.o net_utils.o
+OBJS=${SRCS:%.c=%.o}
 
 .PHONY: clean 
 

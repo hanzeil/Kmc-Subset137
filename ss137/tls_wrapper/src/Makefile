@@ -27,9 +27,8 @@ CFLAGS= -g -Wall -D__DEBUG__ -pedantic -std=c99 $(INCLUDES)
 LIBNAME=libtlswrapper.a
 
 # SRCS=openssl_wrapper.c
-# OBJS=openssl_wrapper.c
 SRCS=gnutls_wrapper.c 
-OBJS=gnutls_wrapper.o 
+OBJS=${SRCS:%.c=%.o}
 
 .PHONY: clean 
 
