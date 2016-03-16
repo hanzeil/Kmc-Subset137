@@ -1,11 +1,31 @@
+/*
+ *
+ * Copyright (C) 2016 Neat S.r.l.
+ *
+ * This file is part of Kmc-Subset137.
+ *
+ * Kmc-Subset137 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Kmc-Subset137 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 /**************************************************************************//**
  *
- * KMC-SS137 kmc-core
+ * KMC-SS137 kmc-core compliant to Subset137.
  *
- * This files contains the implementation of the SUBSET137 
- * Key Management Center as described in the document 
- * SUBSET-137 On-line Key Management FFFIS ver 1.0.0. (17/12/2015)
- *
+ * This files contains the implementation a Key Management Center 
+ * compliant to requirements set in:
+ * "ERTMS/ECTS; On-line Key Management FFFIS" SUBSET-137 ver 1.0.0. (17/12/2015).
  *
  * @file: kmc-core/kmc-core.c
  * $Author: $

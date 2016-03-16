@@ -1,9 +1,31 @@
+/*
+ *
+ * Copyright (C) 2016 Neat S.r.l.
+ *
+ * This file is part of Kmc-Subset137.
+ *
+ * Kmc-Subset137 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Kmc-Subset137 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 /**************************************************************************//**
  *
- * TLS wrapper for OpenSSL
+ * TLS wrapper for OpenSSL as needed by Kmc-Subset137 project.
  *
- * This file wraps the SS137-TLS-needs in an uniform API. This implementation
- * uses OpenSSL as low-level library. Wrapper tested on:
+ * This file wraps the SS137-TLS-needs of Kmc-Subset137 project in an 
+ * uniform API. This implementation uses OpenSSL asits  low-level library. 
+ * The wrapper has been tested on:
  * - OpenSSL 1.0.1f 
  *
  * @file: ss137/tls_wrapper/src/tls_wrapper.c
