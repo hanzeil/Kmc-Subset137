@@ -1,37 +1,84 @@
-###############################################################################
-#
-# KMC-SS137 README
-#
-# KMC-SS137 README
-#
-# @file: ./README
-# $Author: $
-# $Revision: $
-# $Date: $
-#
-# History:
-#
-# Version     Date      Author         Change Description
-#
-# - $Id: $  
-#
-###############################################################################
+Kmc-Subset137 README -- Important introductory notes.
+Copyright (C) 2016 Neat S.r.l.
 
-== DEPENDANCIES ==
- * library gnutls > v3.4.9 (needs support for TLS_ECDHE_RSA_WITH_AES_254_GCM_SHA384)
- * library nettle > v3.1
- * Doxygen +graphviz if you want documentation
+Kmc-Subset137 implements what described in the "ERTMS/ECTS; Online Key
+Management FFFIS" SUBSET-137 v1.0.0 (17/12/2015)" Unisig document.
+Additional information can be found at <http://www.kmc-subset137.eu/>.
 
-== TESTED ON ==
- * Ubuntu 14.04.04 (needs gnutls recompilation)
+
+README
+------
+This README is targeted for users of the library who build from
+sources but do not necessarily develop.  If you are interested
+in developing and contributing to the Kmc-Subset137 project, please
+visit http://www.kmc-subset137.eu/Contributing.html.
+
+
+COMPILATION
+-----------
+A typical command sequence for building the library is shown below.
+    make
+
+The commands above builds the following static archive
+- libss137.a
+- libtlswrapper.a (currently defaults to using GnuTLS)
+and additional tesing binaries in kmc-core and emulators directories.
+
+In you want to link to openssl library instead of default GnuTLS you
+need to modify 'ss137/tls_wrapper/src/Makefile' accordingly.
+
+The library depends on GnuTLS 
+ * GnuTLS: TLSv1.2 implementation http://www.gnutls.org/
+ ** version > v3.4.9 (needed to support mandatory
+    TLS_ECDHE_RSA_WITH_AES_254_GCM_SHA384 exchange)
+
+The library has been tested on the following setup:
  * Fedora 23
- * Centos 7
+ * Centos 7        (needs gnutls > v3.9.4 recompilation)
+ * Ubuntu 14.04.04 (needs gnutls > v3.9.4 recompilation)
 
-== KNOWN ISSUES ==
- * Missing KMC-PSK functinality
+
+KNOWN ISSUES
+------------
+ * Missing KMC-PSK functionality
  
-== TODO ==
- * add Copyleft
+
+DOCUMENTATION
+-------------
+For documentation you need doxygen installed on your system
+To build doxygen documentation use:
+  make docs
+
+Otherwise visit http://www.kmc-subset137.eu/Documentation.html
+
+EXAMPLES
+--------
+The library can be tested via the executables contained in the directory
+emulators.
+
+PATCHES
+-------
+Patches are welcome and encouraged. Patches can be submitted through
+the bug tracking system or the mailing list.  When submitting patches,
+please be sure to use sources from the git repository, and preferrably
+from the master branch. To create a patch for the project from a local
+git repository, please use the following commands. 'kmc-subset137'
+should be the local directory of a previous git clone.
+
+    cd kmc-subset137
+    git add the-file-you-modified.c another-file.c
+    git commit the-file-you-modified.c another-file.c
+    git format-patch
+
+For more information on use of Git, visit http://git-scm.com/
+
+MAILING LISTS
+-------------
+- Request for info kmc-info@kmc-subset137.eu
+- Request for patch submission kmc-devel@kmc-subset137.eu
+
+TODO
+----
  * add support for DB-based KSTRUCTs (sqlite?)
  * a lot more testing
  * add configure shell with options:
