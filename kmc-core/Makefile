@@ -44,14 +44,18 @@ INCLUDES=-I$(COMMONINCLUDE) -I$(SS137LIBINCLUDE)
 CFLAGS= -g -Wall -D__DEBUG__ -pedantic -std=c99 $(INCLUDES)
 # LIBS=-lssl -lcrypto
 
-SRCS=kmc-core.c
+BIN=kmc-core
+
+SRCS=$(BIN).c
 OBJS=${SRCS:%.c=%.o}
 
-BIN=kmc-core
 
 .PHONY: clean 
 
 #------------------------------------------------------------------------------
+
+all:
+
 
 $(BIN): $(SRCS) $(SS137LIB) $(TLSWRAPPERLIB)
 	$(CC) $(CFLAGS) $< -o $@  $(SS137LIB) $(TLSWRAPPERLIB) $(GNUTLSLIB)

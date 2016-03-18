@@ -43,19 +43,25 @@ INCLUDES=-I$(COMMONINCLUDE) -I$(SS137LIBINCLUDE)
 CFLAGS= -g -Wall -D__DEBUG__ -pedantic -std=c99 $(INCLUDES)
 # LIBS=-lssl -lcrypto
 
-SRCS=track-side-entity.c
 
-BIN=track-side-entity
+BIN1=track-side-entity
+BIN2=kmc-core-emulator
 
-OBJS=${SRCS:%.c=%.o}
+ALLBIN=$(BIN1) $(BIN2)
+
+SRCS = $(BIN1).c $(BIN2).c
+OBJS = ${SRCS:%.c=%.o}
 
 .PHONY: all clean 
 
 #------------------------------------------------------------------------------
 
-all: $(BIN)
+all: $(BIN1) $(BIN2)
 
-$(BIN): $(SRCS) $(SS137LIB) $(TLSWRAPPERLIB)
+$(BIN1): $(BIN1).o  $(SS137LIB) $(TLSWRAPPERLIB)
+	$(CC) $(CFLAGS) $< -o $@  $(SS137LIB) $(TLSWRAPPERLIB) $(GNUTLSLIB)
+
+$(BIN2): $(BIN2).o  $(SS137LIB) $(TLSWRAPPERLIB)
 	$(CC) $(CFLAGS) $< -o $@  $(SS137LIB) $(TLSWRAPPERLIB) $(GNUTLSLIB)
 
 
@@ -66,4 +72,4 @@ $(TLSWRAPPERLIB):
 	$(MAKE) -C $(TLSWRAPPERSRC) lib
 
 clean:
-	rm -rf $(OBJS) $(BIN) *~
+	rm -rf $(OBJS) $(ALLBIN)  *~
